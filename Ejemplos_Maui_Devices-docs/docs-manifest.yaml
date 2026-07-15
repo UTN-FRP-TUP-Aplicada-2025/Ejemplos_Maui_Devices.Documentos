@@ -1,0 +1,104 @@
+# docs-manifest.yaml — Manifiesto máquina-legible (Marco §12.2)
+# Generado por: /IA.Prompting.Templates/Tool-Prompts/Documentar-Fuentes-Software.md
+# Estado global: draft (promoción a approved requiere humano — Marco §12.4)
+# Fecha: 2026-07-14 · Origen indexado: ../Ejemplos_Maui_Devices @24d611d
+
+solution:
+  name: Ejemplos_Maui_Devices
+  regulated: false
+  kind: coleccion-ejemplos-didacticos   # no es software de producción
+  source_root: ../../Ejemplos_Maui_Devices   # SOLO LECTURA
+  ia_db: ../ia-db/README.md
+
+# Adaptación declarada (Profile Solution-Documentation):
+# - La doc de pieza vive espejada en pieces/<dominio>/ (el origen no se modifica).
+# - Los proyectos de un dominio son variantes comparables de una misma técnica:
+#   comparten un documento de dominio; `docs` de cada pieza apunta a ese documento.
+# - required_docs de perfil mobile-app no aplicables se declaran en gaps.
+
+pieces:
+  # ── Camera ────────────────────────────────────────────────────────────────
+  - id: Ejemplo_Photo_MediaPicker
+    type: mobile-app
+    domain: camera
+    path: Ejemplos_Devices/Camera/Ejemplo_Photo_MediaPicker
+    docs: docs/pieces/camera/README.md
+  - id: Ejemplo_Photo_MiMediaPicker_Callback
+    type: mobile-app
+    domain: camera
+    path: Ejemplos_Devices/Camera/Ejemplo_Photo_MiMediaPicker_Callback
+    docs: docs/pieces/camera/README.md
+  - id: Ejemplo_Photo_MiMediaPicker_Task
+    type: mobile-app
+    domain: camera
+    path: Ejemplos_Devices/Camera/Ejemplo_Photo_MiMediaPicker_Task
+    docs: docs/pieces/camera/README.md
+  - id: Ejemplo_Photo_MiMediaPicker_Callback_Normalizacion
+    type: mobile-app
+    domain: camera
+    path: Ejemplos_Devices/Camera/Ejemplo_Photo_MiMediaPicker_Callback_Normalizacion
+    docs: docs/pieces/camera/README.md
+  - id: Ejemplo_Photo_MiMediaSelfie_Callback_Normalizacion
+    type: mobile-app
+    domain: camera
+    path: Ejemplos_Devices/Camera/Ejemplo_Photo_MiMediaSelfie_Callback_Normalizacion
+    docs: docs/pieces/camera/README.md
+  # ── QR ────────────────────────────────────────────────────────────────────
+  - { id: BSM.LectorQR,        type: mobile-app, domain: qr, path: Ejemplos_Devices/QR/BSM.LectorQR,        docs: docs/pieces/qr/README.md }
+  - { id: BSM.LectorQR_Dialog, type: mobile-app, domain: qr, path: Ejemplos_Devices/QR/BSM.LectorQR_Dialog, docs: docs/pieces/qr/README.md }
+  - { id: BSN.LectorQR,        type: mobile-app, domain: qr, path: Ejemplos_Devices/QR/BSN.LectorQR,        docs: docs/pieces/qr/README.md }
+  - { id: BSN.LectorQR_Dialog, type: mobile-app, domain: qr, path: Ejemplos_Devices/QR/BSN.LectorQR_Dialog, docs: docs/pieces/qr/README.md }
+  - { id: CS.LectorQR,         type: mobile-app, domain: qr, path: Ejemplos_Devices/QR/CS.LectorQR,         docs: docs/pieces/qr/README.md }
+  - { id: CS.LectorQR_Dialog,  type: mobile-app, domain: qr, path: Ejemplos_Devices/QR/CS.LectorQR_Dialog,  docs: docs/pieces/qr/README.md }
+  - { id: ZN.LectorQR,         type: mobile-app, domain: qr, path: Ejemplos_Devices/QR/ZN.LectorQR,         docs: docs/pieces/qr/README.md }
+  - { id: ZN.LectorQR_Dialog,  type: mobile-app, domain: qr, path: Ejemplos_Devices/QR/ZN.LectorQR_Dialog,  docs: docs/pieces/qr/README.md }
+  # ── Printer ───────────────────────────────────────────────────────────────
+  - { id: Ejemplo_ThermalPrinter, type: mobile-app, domain: printer, path: Ejemplos_Devices/Printer/Ejemplo_ThermalPrinter, docs: docs/pieces/printer/README.md }
+  - { id: Ejemplo_MotorDSL,       type: mobile-app, domain: printer, path: Ejemplos_Devices/Printer/Ejemplo_MotorDSL,       docs: docs/pieces/printer/README.md }
+  - { id: Ejemplo_MotorDSL_Dialog, type: mobile-app, domain: printer, path: Ejemplos_Devices/Printer/Ejemplo_MotorDSL_Dialog, docs: docs/pieces/printer/README.md }
+  # ── GPS · Maps · Phone · Red ─────────────────────────────────────────────
+  - { id: Ejemplo_Maui_GPS,          type: mobile-app, domain: gps,   path: Ejemplos_Devices/GPS/Ejemplo_Maui_GPS,            docs: docs/pieces/gps/README.md }
+  - { id: Ejemplo_Maui_Mapas,        type: mobile-app, domain: maps,  path: Ejemplos_Devices/Maps/Ejemplo_Maui_Mapas,         docs: docs/pieces/maps/README.md }
+  - { id: Ejemplo_Maui_Dialer,       type: mobile-app, domain: phone, path: Ejemplos_Devices/Phone/Ejemplo_Maui_Dialer,       docs: docs/pieces/phone/README.md }
+  - { id: Ejemplo_Maui_DirectCall,   type: mobile-app, domain: phone, path: Ejemplos_Devices/Phone/Ejemplo_Maui_DirectCall,   docs: docs/pieces/phone/README.md }
+  - { id: Ejemplo_Maui_Connectivity, type: mobile-app, domain: red,   path: Ejemplos_Devices/Red/Ejemplo_Maui_Connectivity,   docs: docs/pieces/red/README.md }
+  # ── Integrada ─────────────────────────────────────────────────────────────
+  - id: Ejemplo_Maui_Hibrida
+    type: mobile-app
+    domain: integrada
+    path: Ejemplos_Devices/Integrada/Ejemplo_Maui_Hibrida
+    docs: docs/pieces/integrada/README.md
+  - id: Ejemplo_ws_Blazor
+    type: service
+    domain: integrada
+    path: Ejemplos_Devices/Integrada/Ejemplo_ws_Blazor
+    docs: docs/pieces/integrada/README.md
+
+doc_types:
+  vision:          { path_pattern: "docs/00-overview/vision.md",          max_age_days: 365 }
+  system-map:      { path_pattern: "docs/00-overview/system-map.md",      max_age_days: 180 }
+  architecture:    { path_pattern: "docs/01-architecture/*.md",           max_age_days: 180 }
+  adr:             { path_pattern: "docs/04-decisions/*.md",              max_age_days: 0 }    # inmutables
+  api-catalog:     { path_pattern: "docs/05-apis/catalog.md",             max_age_days: 180 }
+  runbook:         { path_pattern: "docs/07-operations/*.md",             max_age_days: 180 }
+  onboarding:      { path_pattern: "docs/08-onboarding/developer-setup.md", max_age_days: 180 }
+  piece-readme:    { path_pattern: "docs/pieces/*/README.md",             max_age_days: 180 }
+  glossary:        { path_pattern: "GLOSSARY.md",                         max_age_days: 365 }
+  gap-report:      { path_pattern: "GAP-REPORT.md",                       max_age_days: 90 }
+
+required_docs:
+  solution: [vision, system-map, architecture, adr, api-catalog, runbook, onboarding, glossary, gap-report]
+  per_domain: [piece-readme]
+
+# Gaps declarados (requerido por perfil pero no reconstruible / no aplicable):
+gaps:
+  - profile_doc: release-por-store        # perfil mobile-app (Marco §7.1)
+    reason: los ejemplos no se publican en tiendas; no hay evidencia de releases
+  - profile_doc: 02-requirements
+    reason: colección didáctica sin requisitos formales reconstruibles con evidencia
+  - profile_doc: 03-data (diccionario, ER, fixtures §14/§15)
+    reason: la solución no posee base de datos; no se proveyeron {conexiones}
+  - profile_doc: 06-security-compliance/threat-model
+    reason: no regulado y sin evidencia para reconstruirlo; notas de seguridad en 01-architecture/06-crosscutting.md
+  - profile_doc: openapi.yaml (Ejemplo_ws_Blazor)
+    reason: ver docs/05-apis/catalog.md — contrato inferido; divergencias reportadas allí
