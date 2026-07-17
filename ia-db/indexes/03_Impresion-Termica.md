@@ -309,33 +309,70 @@ Añade una capa MVVM reutilizable sobre el motor DSL. Referencia además `Commun
 
 | Tipo (`Models/`) | Casos |
 |---|---|
-| `DiscoverResult` | `Found(devices)` · `Empty` · `BluetoothOff(msg)` · `NotSupported` |
-| `PrintResult` | `Success` · `Failure(msg)` |
+| `DiscoverResult` | `Found(devices)` · `Empty` · `BluetoothOff(PrintFailure)` · `PermissionRevoked(PrintFailure)` · `NotSupported` |
+| `PrintResult` | `Success` · `Failure(PrintFailure)` |
+| `PrintFailure` (record) | `Code` · `Title` · `UserMessage` · `TechnicalMessage` · `Exception?` |
 | `BluetoothPermissionResult` (enum) | `Granted` · `DeniedCanRetry` · `Denied` · `Restricted` |
 
-El `PrinterOverlayViewModel` hace `switch` sobre estos records y mapea cada caso a una capa de UI con acciones (Reintentar / Elegir otra / Abrir configuración / Cerrar). Fuente: `PrinterOverlayViewModel.cs:59-153`.
+El `PrinterOverlayViewModel` hace `switch` sobre estos records y mapea cada caso a una capa de UI con acciones. Fuente: `PrinterOverlayViewModel.cs`.
 
-### 10.3 Impresora predeterminada
+> **Alcanzabilidad.** `BluetoothOff` existió como variante sin que ningún punto la construyera: el transport lanzaba, pero `ThermalPrinterService` capturaba la excepción y devolvía lista vacía, así que el flujo siempre caía en `Empty`. `PrinterService.DiscoverAsync` ahora chequea adaptador y permiso **antes** de llamar a la librería, que es lo que hace alcanzables `BluetoothOff` y `PermissionRevoked`. Modelar un caso no es lo mismo que producirlo: al agregar una variante hay que trazar hasta su punto de construcción.
 
-`PrinterService.ConnectAsync` **auto-guarda** el device conectado (`Preferences "default_printer_id"/"default_printer_name"`); `GetDefaultIfPresent` la reutiliza sólo si aparece en el descubrimiento actual, saltando el selector. Fuente: `PrinterService.cs:73-106`.
+### 10.3 Catálogo de errores con código
 
-### 10.4 Mapeo estado del flujo → capa de overlay
+`Models/PrinterErrorCatalog.cs` traduce cada causa a un `PrintFailure` con código estable. La UI muestra `UserMessage` + `Code`; `TechnicalMessage` y `Exception` conservan el error original para log y reporte, y nunca se muestran crudos.
+
+| Código | Causa | Acción primaria |
+|---|---|---|
+| `PRN-DOC-NET` | GET del comprobante falla / timeout | Reintentar (rehace el GET) |
+| `PRN-DOC-CONTRACT` | La respuesta no es un `PrintDocument` | Cerrar |
+| `PRN-DOC-RENDER` | `render.Errors.Count > 0` | Cerrar |
+| `PRN-BT-OFF` | Adaptador deshabilitado | Activar Bluetooth |
+| `PRN-BT-PERM` | `BLUETOOTH_CONNECT` revocado en caliente | Abrir ajustes de la app |
+| `PRN-DEV-NONE` | Sin impresoras emparejadas | Emparejar impresora |
+| `PRN-DEV-ABSENT` | No conecta con la **predeterminada** | Reintentar · Olvidar y emparejar otra |
+| `PRN-CONN-FAIL` | No conecta con una **elegida** | Reintentar · Elegir otra |
+| `PRN-HW-PAPER` | `PrinterHardwareException` · `DLE EOT n=4` | «Ya cargué papel — Reintentar» |
+| `PRN-HW-COVER` | `PrinterHardwareException` · `DLE EOT n=2` | «Ya la cerré — Reintentar» |
+| `PRN-HW-OTHER` | `Hardware` sin causa reconocida | Reintentar |
+| `PRN-LINK-LOST` | `IOException` / `SocketException` | Reintentar · Elegir otra |
+| `PRN-TIMEOUT` | `TimeoutException` / `TaskCanceledException` | Reintentar · Elegir otra |
+| `PRN-UNKNOWN` | Resto (incluye `Protocol`) | Reintentar |
+
+La clasificación **reusa `PrintError.FromException`** (público en `MotorDsl.Core.Models`) en lugar de reimplementarla: `ThermalPrinterService` envuelve el fallo en un `Exception` genérico pero conserva la causa en `InnerException`. El único string-matching restante distingue papel de tapa dentro de `Hardware`.
+
+> El atasco de papel y la impresión desvanecida **no tienen código**, y es deliberado: `DLE EOT` no los reporta. Asignarles uno sugeriría una detección inexistente. La verificación final es visual.
+
+### 10.4 Impresora predeterminada
+
+`PrinterService.ConnectAsync` **auto-guarda** el device conectado (`Preferences "default_printer_id"/"default_printer_name"`); `GetDefaultIfPresent` la reutiliza sólo si aparece en el descubrimiento actual, saltando el selector. El camino feliz no se interrumpe.
+
+**«Presente» significa emparejada, no encendida**: el descubrimiento sólo lista `BondedDevices`, así que una predeterminada apagada igual aparece y el fallo recién se manifiesta al conectar. Ese caso da `PRN-DEV-ABSENT`, cuyo mensaje nombra las dos causas que el stack **no puede distinguir** (impresora apagada vs. impresora distinta a la emparejada: ambas son el mismo fallo de socket RFCOMM) y ofrece las tres salidas.
+
+`ClearDefault` + `OpenBluetoothSettings` implementan «Olvidar y emparejar otra». `GetAlias`/`SetAlias` persisten un alias por MAC.
+
+### 10.5 Mapeo estado del flujo → capa de overlay
 
 | Situación | Capa mostrada | Acciones (botonera) |
 |---|---|---|
-| Verificando permisos / buscando / conectando / enviando | **Busy** (`timer.gif`) | — |
-| Render falló | Error | Cerrar |
+| Obteniendo comprobante / permisos / buscando / conectando / enviando | **Busy** (`timer.gif`) | — |
+| `PRN-DOC-NET` | Error | Reintentar · Cerrar |
+| `PRN-DOC-CONTRACT` / `PRN-DOC-RENDER` | Error | Cerrar |
 | Permiso `DeniedCanRetry` | Error | Pedir permiso · Cerrar |
 | Permiso `Denied` | Error | Abrir configuración · Cerrar |
 | Permiso `Restricted` | Error | Cerrar |
-| `DiscoverResult.Empty` | Error | Reintentar · Cerrar |
-| `DiscoverResult.BluetoothOff` | Error | Reintentar · Abrir configuración · Cerrar |
-| Varias impresoras | Error (selector) | 1 botón por device · Cerrar |
-| Conexión falló | Error | Reintentar · Elegir otra · Cerrar |
-| Envío falló | Error | Reintentar · Cerrar |
+| `DiscoverResult.Empty` | Error | Reintentar · Emparejar impresora · Cerrar |
+| `DiscoverResult.BluetoothOff` | Error | Activar Bluetooth · Reintentar · Cerrar |
+| `DiscoverResult.PermissionRevoked` | Error | Abrir configuración · Reintentar · Cerrar |
+| Varias impresoras | Error (selector) | 1 botón por device (alias, o nombre + sufijo MAC ante homónimas) · Cerrar |
+| Predeterminada no conecta (`PRN-DEV-ABSENT`) | Error | Reintentar · Elegir otra impresora¹ · Olvidar y emparejar otra · Cerrar |
+| Elegida no conecta (`PRN-CONN-FAIL`) | Error | Reintentar · Elegir otra · Cerrar |
+| Envío falló | Error | Según código (ver §10.3) · Cerrar |
 | Envío OK | Overlay oculto (`Hide()`) | — |
 
-Los reintentos reutilizan el último estado (`_lastRender`, `_lastDevice`, `_bytes`) sin re-renderizar. Fuente: `PrinterOverlayViewModel.cs:31-177`.
+¹ Sólo si hay más de una emparejada. «Elegir otra» invoca `BuscarYImprimirAsync(forzarSelector: true)`, que **saltea la predeterminada**: sin ese flag el botón volvía a descubrir, volvía a encontrar la predeterminada en `BondedDevices` y volvía a conectar con la misma — un bucle sin salida por UI.
+
+Los reintentos reutilizan el último estado (`_lastRender`, `_lastDevice`, `_bytes`) sin re-renderizar; `_lastEraPredeterminada` conserva el rol del device para que reintentar no degrade el diagnóstico. La excepción es `PRN-DOC-NET`, único reintento que vuelve a la red. Fuente: `PrinterOverlayViewModel.cs`.
 
 ---
 

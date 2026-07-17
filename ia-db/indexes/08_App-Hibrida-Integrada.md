@@ -203,10 +203,20 @@ Caso testigo del puente: la web dispara `?action=print`, la app trae un `PrintDo
 | Backend `TikectsController` | Sirve el `PrintDocument` hardcodeado | `Ejemplo_ws_Blazor/Controllers/TikectsController.cs` |
 
 Detalles del handler (`PrintCommandHandler.cs`):
-- Endpoint fijo: `https://aplicada.somee.com/api/Tikects/comprobante` (GET, timeout 30s) (`:16-17,80`).
-- **Render SIEMPRE primero**, antes de tocar la impresora (`:38-49`). El JSON crudo se pasa tal cual al engine; se deserializa a `PrintDocument` sólo para **validar el contrato** (`:82-84`).
-- `DeviceProfile("58HB6", 32, "escpos-bitmap")` con capacidades `supports_bitmap`, `bitmap_max_width_px=320`, `bitmap_binarization_threshold=128` (`:39-42`).
-- Si `render.Errors > 0`, no imprime; el overlay muestra el error (`:52-56`).
+- Endpoint fijo: `https://aplicada.somee.com/api/Tikects/comprobante` (GET, timeout 30s).
+- **Render SIEMPRE primero**, antes de tocar la impresora. El JSON crudo se pasa tal cual al engine; se deserializa a `PrintDocument` sólo para **validar el contrato**.
+- `DeviceProfile("58HB6", 32, "escpos-bitmap")` con capacidades `supports_bitmap`, `bitmap_max_width_px=320`, `bitmap_binarization_threshold=128`.
+- **Se delega SIEMPRE en el overlay**, también con el render en error: es el único componente que puede comunicarle algo al usuario. El guard de `ImprimirAsync` cubre ese caso.
+
+`ObtenerDocumentoAsync` devuelve un **`DocumentResult` tipado** (`MotorDSL/Models/DocumentResult.cs`) en lugar de un string vacío ante cualquier fallo:
+
+| Variante | Causa | Tratamiento |
+|---|---|---|
+| `Ok(json)` | Contrato válido | Render → `ImprimirAsync` |
+| `NetworkError(technical)` | Timeout, caída de red, backend no disponible | `PRN-DOC-NET` · **Reintentable**: el botón rehace el GET (`ImprimirComprobanteAsync` se pasa a sí mismo como delegado) |
+| `InvalidContract(technical)` | Respuesta no parseable o sin `Root.Type` | `PRN-DOC-CONTRACT` · No reintentable: va a soporte |
+
+> **Por qué importa.** Antes, cualquier fallo devolvía string vacío → render con errores → `return` temprano **sin mostrar el overlay**: el usuario tocaba «imprimir», esperaba hasta 30 s y la pantalla no cambiaba. Ahora el overlay muestra una capa Busy durante el GET y una capa de error accionable después. Ver el catálogo de códigos en el [índice 03 §10.3](03_Impresion-Termica.md).
 
 ### 6.2 Diagrama de secuencia
 
@@ -224,24 +234,29 @@ sequenceDiagram
     Web->>VM: Navigating(url ?action=print)
     VM->>VM: e.Cancel = true (IsCommand)
     VM->>PH: DispatchAsync → HandleAsync(url)
+    PH->>OVM: MostrarObteniendoDocumento() (capa Busy)
     PH->>API: GET /api/Tikects/comprobante
     API-->>PH: 200 JSON PrintDocument (árbol PrintNode)
-    PH->>PH: validar contrato (deserializa a PrintDocument)
-    PH->>ENG: Render(json, DeviceProfile 58HB6/escpos-bitmap)
-    ENG-->>PH: RenderResult (bytes ESC/POS) o Errors
-    alt render OK
+    PH->>PH: DocumentResult: Ok / NetworkError / InvalidContract
+    alt documento OK
+        PH->>ENG: Render(json, DeviceProfile 58HB6/escpos-bitmap)
+        ENG-->>PH: RenderResult (bytes ESC/POS) o Errors
         PH->>OVM: ImprimirAsync(render)
+        Note over OVM: render en error → PRN-DOC-RENDER (guard de ImprimirAsync)
         OVM->>SVC: EnsurePermissionsAsync() (BLUETOOTH_SCAN/CONNECT)
         SVC-->>OVM: Granted / Denied…
         OVM->>SVC: DiscoverAsync() (kind:"bluetooth")
-        SVC-->>OVM: Found(devices) / Empty / BluetoothOff / NotSupported
+        SVC-->>OVM: Found / Empty / BluetoothOff / PermissionRevoked / NotSupported
         Note over OVM: reusa default (Preferences) o muestra selector
         OVM->>SVC: ConnectAsync(device) → guarda default_printer_id
+        Note over OVM: si falla la default → PRN-DEV-ABSENT
         OVM->>SVC: SendAsync(bytes)
         SVC->>BT: SendBytesAsync → impresión física
         BT-->>OVM: PrintResult.Success → Hide()
-    else render con errores
-        PH-->>OVM: overlay "No se pudo generar el documento"
+        Note over OVM: si falla → PrintFailure con código (papel, tapa, enlace…)
+    else NetworkError / InvalidContract
+        PH->>OVM: MostrarFalloDocumento(PRN-DOC-NET | PRN-DOC-CONTRACT)
+        Note over OVM: PRN-DOC-NET ofrece Reintentar → rehace el GET
     end
 ```
 
