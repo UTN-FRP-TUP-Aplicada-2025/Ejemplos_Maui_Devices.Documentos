@@ -1,0 +1,1 @@
+Lee y ejecuta `/Ejemplos_Maui/Ejemplos_Maui_Devices.Documentos/PROMPTs/Implementar/Crear-Flow-End2End-App.md` PROYECTO=`/Ejemplos_Devices/Integrada/Ejemplo_Maui_Hibrida`, PACKAGE_NAME=`com.ejemplos.devices.integrada.hibrida`, ESTRATEGIA=`B`

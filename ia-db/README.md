@@ -34,7 +34,7 @@
 | Targets | `net10.0-android`, `net10.0-ios` (iOS en CI/macOS) |
 | Dominios | Cámara · QR · Impresión térmica · GPS · Mapas · Telefonía · Red · App híbrida integrada |
 | Repo de código | `../../Ejemplos_Maui_Devices/` (hermano de esta carpeta `.Documentos`) |
-| Versión ia-db | 1.2 |
+| Versión ia-db | 1.3 |
 
 **Función principal.** Cada dispositivo de plataforma se presenta como uno o varios proyectos MAUI mínimos y comparables que contrastan enfoques de implementación; una app híbrida (`Ejemplo_Maui_Hibrida`) consolida todos los dispositivos detrás de un `WebView` con un puente de comandos por URL y un backend Blazor de apoyo.
 
@@ -83,6 +83,8 @@ Sobre esta ia-db se generó el conjunto documental completo (Marco de Documentac
 
 > **Actualización incremental v1.2 (2026-07-17):** el workflow CI de la app híbrida se **recategorizó** de `gps` a una categoría propia `Integrada`: `cd-ios-gps.Ejemplo_Maui_Hibrida.yml` → `cd-ios-Integrada.Ejemplo_Maui_Hibrida.yml` (contenido idéntico; solo cambia el archivo/categoría). Sigue habiendo **18 workflows** en total; GPS queda con 1. Corregido en el [índice 09](indexes/09_CI-CD-y-Build.md) (§1 árbol, §2 convención, §3.1/§3.2 tablas) y en el [índice 10 §4](indexes/10_Documentacion-Transversal.md) (referencia de estilo del CHANGELOG y puntero a la entrada más reciente, ahora `2026-07-17`). El resto de cambios del árbol de trabajo (armonización de overlays, tests, UX de impresión) ya estaban reflejados en v1.1; las utilidades de simulación en la raíz `Utilities/` (`flows/`, `end2end/`, `simular_ui.sh`) quedan fuera del alcance indexado.
 
+> **Actualización incremental v1.3 (2026-07-17):** las **pruebas end2end sobre la UI real** (Maestro «dedo virtual» + grabación de video en el simulador iOS: workflow `cd-ios-Integrada.Ejemplo_Maui_Hibrida.yml` → `Utilities/simular_ui.sh` → `Utilities/end2end/<PACKAGE_NAME>.yaml`) **siguen fuera del alcance indexado** (nota v1.2), pero ya **no quedan sin documentar**: el conjunto documental derivado las describe como puntero en su [README (§ Pruebas End2End)](../Ejemplos_Maui_Devices-docs/README.md). Verificado contra el origen `@a994257`; detalle en el [CHANGELOG documental](../CHANGELOG.md) (entrada «Documentación de pruebas End2End»). No cambió ningún índice temático (00–10): esta nota es solo una referencia cruzada.
+
 ## Manifiesto de generación
 
 - Generado por : /IA.Prompting.Templates/Tool-Prompts/Iniciar-Indexado.md
@@ -90,5 +92,5 @@ Sobre esta ia-db se generó el conjunto documental completo (Marco de Documentac
 - Fuentes      : Ejemplos_Devices/ (Camera, QR, Printer, GPS, Maps, Phone, Red, Integrada, Docs, scripts), .github/workflows/, README.md, CHANGELOG.md, vs.bat, .gitignore
 - Exclusiones  : .git, bin, obj, .vs, Platforms/*/Resources, wwwroot/lib, binarios/imágenes, artefactos de build, y lo ignorado por .gitignore
 - Generado     : 2026-07-14 · Versión: 1.0
-- Actualizado  : 2026-07-17 · Versión: 1.2 (incremental; recategorización CI de la híbrida — ver nota de sincronización)
+- Actualizado  : 2026-07-17 · Versión: 1.3 (incremental; referencia cruzada a la documentación de pruebas End2End — ver nota de sincronización)
 - Actualizar   : /IA/IA.Prompts/Tool-Prompts/Indexado/Actualizar-Indexado.md

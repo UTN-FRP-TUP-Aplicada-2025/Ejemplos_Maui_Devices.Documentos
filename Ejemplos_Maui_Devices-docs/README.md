@@ -89,6 +89,32 @@ Ejemplos_Maui_Devices.Documentos/
 - **Lo inferido lleva `confidence`**; las contradicciones entre fuentes se **reportan**, no se resuelven en silencio (ver [GAP-REPORT §3](GAP-REPORT.md)).
 - ⚠️ **Requiere acción humana**: hay una API key de Google Maps hardcodeada en el origen — ver [GAP-REPORT §3.1](GAP-REPORT.md).
 
+## Pruebas End2End (dedo virtual)
+
+La solución incluye una técnica de **prueba end2end sobre la UI real** que corre en CI (macOS) y deja **video + logs** como evidencia. No vive en `docs/` porque las utilidades de simulación quedan fuera del alcance indexado de la ia-db (ver [ia-db §nota v1.2](../ia-db/README.md)); se resume aquí como puntero.
+
+**Piezas** (en el repo de código `../../Ejemplos_Maui_Devices/`):
+
+| Pieza | Ruta | Rol |
+|---|---|---|
+| Workflow CI | `.github/workflows/cd-ios-Integrada.Ejemplo_Maui_Hibrida.yml` | Compila la app para el **simulador iOS** (ad-hoc), instala **Maestro** y llama al script |
+| Script | `Utilities/simular_ui.sh` | Bootea el simulador, instala la `.app`, **graba video nativo** (`simctl io recordVideo`) y ejecuta el flujo Maestro; deja `recorrido.mp4` + `debug_logs/` |
+| Flujo | `Utilities/end2end/<PACKAGE_NAME>.yaml` | "Dedo virtual" Maestro: toca controles **por texto visible** (`tapOn`), con `appId: ${APP_ID}` inyectado |
+| (Legado) | `Utilities/simular.sh` | Enfoque pasivo previo: screenshots → GIF (`ffmpeg`). Reemplazado por el de video |
+
+**Cómo funciona.** Maestro actúa por **texto/accessibility label**, no por `AutomationId`, así que un mismo YAML es portable (se puede autoría/validar en Android y correr en el simulador iOS). Convenciones: `launchApp` → `waitForAnimationToEnd` (8 s inicial por splash/WebView) → `tapOn: "<texto>"` por cada acción → `back`. Fallback por coordenada `tapOn: { point: "x%, y%" }`. **Límite conocido:** el simulador iOS no tiene cámara → las vistas de cámara/QR se ven negras; es esperado y sirve igual como evidencia de navegación.
+
+**Herramientas y posibilidades para *generar* el flujo por exploración** (ver el prompt [`Crear-Flow-End2End-App.md`](../PROMPTs/Implementar/Crear-Flow-End2End-App.md)):
+- **A — Barrido caja-negra (Android USB):** `adb` + `maestro hierarchy`/`uiautomator dump` para recorrer la UI y derivar el *storyboard*.
+- **B — Grabación de navegación:** `maestro record`/`maestro studio` capturan la sesión → se normaliza a las convenciones y se replaya en iOS.
+- **C — Derivación estática:** leer los `Text=` de las páginas MAUI y emitir el flujo sin dispositivo (provisional hasta validar).
+
+> **Deuda técnica.** Los YAML de `Utilities/end2end/` nombran apps distintas pero `…gps.yaml` y `…qr.dialog.yaml` siguen con el **contenido de la híbrida**; `simular_ui.sh` resuelve el flujo como `end2end/${PACKAGE_NAME}.yaml`, así que cada app debería tener su propio recorrido. `…integrada.hibrida.yaml` ya fue rehecho a partir de la UI real (Estrategia B, validación en dispositivo pendiente).
+>
+> **Textos reales de MainPage (híbrida)** — la barra inferior declara 4 botones nativos: `Volver` · `Geo Pos` · `Llamar` · `Leer QR`. Ojo: el de GPS dice **"Geo Pos"**, no "Geo Posicionar" (texto que usaba el flujo previo y no matcheaba). El "Volver" de `QRLectorPage` es solo ícono (`arrow_back`, sin texto) → requiere coordenada o gesto `back`.
+>
+> **Verificado en dispositivo real** (Moto G42, Android, 1080px, vía `adb uiautomator dump`, 2026-07): los textos `Volver`/`Geo Pos`/`Llamar` coinciden y son tappables. En ese ancho la fila de 4 botones no entra y `Leer QR` queda recortado a la derecha; el flujo corre sobre el simulador iOS del CI (iPhone 17 Pro Max, más ancho), donde entra. Si algún runner lo recortara, el YAML trae un fallback por coordenada comentado.
+
 ## Para agentes
 
 1. Leer [`docs-manifest.yaml`](docs-manifest.yaml): piezas, `type`, `required_docs` y `gaps` declarados.

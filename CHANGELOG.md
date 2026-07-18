@@ -3,6 +3,33 @@
 Cambios notables de la documentación de `Ejemplos_Maui_Devices` (`Ejemplos_Maui_Devices.Documentos`).
 Formato basado en [Keep a Changelog](https://keepachangelog.com/es-ES/1.1.0/).
 
+## [2026-07-17] — Documentación de pruebas End2End (dedo virtual)
+
+Se documenta la técnica de prueba **end2end sobre la UI real** (Maestro «dedo virtual» +
+grabación de video en el simulador iOS) que ya existía en el repositorio de código pero no
+estaba reflejada en el conjunto documental. Se agrega como **puntero** en el `README.md` del
+conjunto documental; las utilidades de simulación (`Utilities/`) siguen **fuera del alcance
+indexado de la ia-db** (nota v1.2). No se modificó el código fuente (solo lectura). Toda
+afirmación se verificó contra el origen `Ejemplos_Maui_Devices @a994257`: el workflow
+`cd-ios-Integrada.Ejemplo_Maui_Hibrida.yml` (build de simulador iOS + Maestro 1.41.0 +
+`./Utilities/simular_ui.sh`), `simular_ui.sh` (`simctl io recordVideo` → `recorrido.mp4`,
+`maestro test -e APP_ID=… end2end/${PACKAGE_NAME}.yaml`, `debug_logs/`), `simular.sh` (legado
+screenshots→GIF por `ffmpeg`) y los textos reales de `MainPage.xaml` / el botón sólo-ícono
+`arrow_back` de `QRLectorPage.xaml`.
+
+### Agregado
+
+- **Sección «Pruebas End2End (dedo virtual)»** en `Ejemplos_Maui_Devices-docs/README.md`:
+  describe la cadena CI → `Utilities/simular_ui.sh` → flujo Maestro
+  `Utilities/end2end/<PACKAGE_NAME>.yaml`, la evidencia que deja (`recorrido.mp4` + `debug_logs/`),
+  las tres estrategias para *generar* el flujo (barrido caja-negra por `adb`/`maestro hierarchy`,
+  grabación con `maestro record`/`studio`, derivación estática desde los `Text=` de las páginas
+  MAUI) y los textos reales de los cuatro botones nativos de `MainPage` de la híbrida
+  (`Volver` · `Geo Pos` · `Llamar` · `Leer QR`).
+- **Nota de deuda técnica** en esa sección: los flujos `…gps.yaml` y `…qr.dialog.yaml` conservan
+  el contenido de la híbrida (con el texto obsoleto «Geo Posicionar»); `…integrada.hibrida.yaml`
+  fue rehecho desde la UI real por Estrategia B (validación en dispositivo pendiente).
+
 ## [2026-07-17] — Armonización de overlays, primer proyecto de tests y recategorización CI
 
 Dos lotes de trabajo posteriores a la UX de impresión, acotados a la app híbrida
