@@ -114,6 +114,14 @@ La solución incluye una técnica de **prueba end2end sobre la UI real** que cor
   3. **Precalentado**: se abre la GUI y se bootea en el step "Verificando simulador instalado" (fire-and-forget), para que el simulador arranque **durante el build** y no se pague el boot en frío. `simular_ui.sh` hace short-circuit si ya está `Booted`.
   4. **Diagnóstico**: si el boot falla tras el reintento, vuelca las últimas líneas de `~/Library/Logs/CoreSimulator/CoreSimulator.log` para no quedar a ciegas.
 
+**Captura del video con el recorrido completo (operación).** Aprendido en CI (2026-07):
+
+- **Síntoma:** el simulador booteaba y grababa (~1:50), pero el video **terminaba sobre el arranque de la app** y no mostraba las interacciones.
+- **Causa:** el arranque en frío (Release + WebView remoto `aplicada.somee.com`) es lento y se comía la grabación; además el flujo tocaba `Geo Pos` tras un wait fijo de 8 s, antes de que la UI existiera, y **fallaba en el primer `tapOn`** → las interacciones nunca ocurrían.
+- **Fix (flujo + `simular_ui.sh`):**
+  1. **Espera activa** en el flujo: `extendedWaitUntil: { visible: "Geo Pos", timeout: 120000 }` en vez del wait fijo. Maestro no interactúa hasta que el control nativo está presente.
+  2. **Pre-warm** en el script: se lanza la app y se espera su carga **antes** de arrancar `recordVideo`; el flujo usa `launchApp: { stopApp: false }` para **no reiniciarla** (un solo arranque en frío, no grabado). El video queda enfocado en el recorrido, no en el splash.
+
 **Herramientas y posibilidades para *generar* el flujo por exploración** (ver el prompt [`Crear-Flow-End2End-App.md`](../PROMPTs/Implementar/Crear-Flow-End2End-App.md)):
 - **A — Barrido caja-negra (Android USB):** `adb` + `maestro hierarchy`/`uiautomator dump` para recorrer la UI y derivar el *storyboard*.
 - **B — Grabación de navegación:** `maestro record`/`maestro studio` capturan la sesión → se normaliza a las convenciones y se replaya en iOS.
