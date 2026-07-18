@@ -1,0 +1,2 @@
+07-17 13:32:20.449 I/Choreographer(27418): Skipped 36 frames!  The application may be doing too much work on its main thread.
+'Ejemplo_Maui_Hibrida.dll' (Mono: Default Domain): 'F:\repos\ng-sa\Workspace-GDA\Ejemplos_Maui\Ejemplos_Maui_Devices\Ejemplos_Devices\Integrada\Ejemplo_Maui_Hibrida\obj\Debug\net10.0-android\android\assets\arm64-v8a\System.IO.Pipelines.dll' cargado. Se omitió la carga de símbolos. El módulo está optimizado y la opción del depurador 'Sólo mi código' está habilitada.

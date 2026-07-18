@@ -30,8 +30,8 @@ Ejemplos_Maui_Devices.Documentos/
     ├── GAP-REPORT.md          ← qué falta, qué se omitió y las derivas detectadas
     └── docs/
         ├── 00-overview/       ← visión + mapa del sistema
-        ├── 01-architecture/   ← C4 contexto/contenedores, runtime views, transversales
-        ├── 04-decisions/      ← 8 ADRs reconstruidos
+        ├── 01-architecture/   ← C4 contexto/contenedores, runtime views, transversales, overlays
+        ├── 04-decisions/      ← 9 ADRs (8 reconstruidos + 1 de diseño)
         ├── 05-apis/           ← catálogo de contratos (puente URL + backend)
         ├── 07-operations/     ← runbook de build y ejecución
         ├── 08-onboarding/     ← setup del desarrollador
@@ -46,6 +46,8 @@ Ejemplos_Maui_Devices.Documentos/
 | Ver todas las piezas y su tipo | [Mapa del sistema](docs/00-overview/system-map.md) |
 | Ver cómo encaja todo y por qué | [Contexto C4](docs/01-architecture/01-context.md) → [Contenedores](docs/01-architecture/02-containers.md) |
 | Seguir un flujo de punta a punta (imprimir, leer QR, GPS) | [Vistas de runtime](docs/01-architecture/04-runtime-views.md) |
+| **Entender el patrón de overlays de dispositivo** (fundamento, cómo agregar uno, anti-patrones) | [Overlays — fundamento](docs/01-architecture/07-overlays-dispositivos.md) |
+| **Saber qué ve el usuario ante un fallo** de GPS, red, llamada o impresión | [Overlays — catálogo de pantallas](docs/01-architecture/08-pantallas-por-dispositivo.md) |
 | Entender el porqué de una decisión | [ADRs](docs/04-decisions/) |
 | Integrar la web con lo nativo | [Catálogo de APIs](docs/05-apis/catalog.md) · [Contrato del puente](docs/pieces/integrada/bridge-contract.md) |
 | Compilar y ejecutar los ejemplos | [Runbook](docs/07-operations/build-and-run.md) |
@@ -78,6 +80,7 @@ Ejemplos_Maui_Devices.Documentos/
 | [0006](docs/04-decisions/0006-ci-ios-adhoc-android-local.md) | CI de iOS con firma ad-hoc; ejecución local en Android físico |
 | [0007](docs/04-decisions/0007-secretos-fuera-del-repo.md) | Secretos de build fuera del repo (plantilla + secrets de CI) |
 | [0008](docs/04-decisions/0008-trust-anchors-embebidos-webview.md) | TLS en WebView Android: trust anchors embebidos |
+| [0009](docs/04-decisions/0009-ciclo-vida-overlay-gps-y-cancelacion-navegacion.md) | Cierre determinista del overlay GPS (Opción A) y cancelación robusta del puente de navegación |
 
 ## Estado y trazabilidad
 

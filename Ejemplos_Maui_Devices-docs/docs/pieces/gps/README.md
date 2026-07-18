@@ -262,6 +262,8 @@ public async Task<string> GetDomicilioAsync(double latitude, double longitude)
 
 ## Referencias
 
+- Patrón de overlays de dispositivo: [fundamento](../../01-architecture/07-overlays-dispositivos.md) · [catálogo de pantallas §3](../../01-architecture/08-pantallas-por-dispositivo.md#3-gps) — mensajes literales y **cinco variantes que hoy no muestran nada al usuario**
+
 - Índice del dominio: [ia-db/indexes/04_GPS.md](../../../../ia-db/indexes/04_GPS.md)
 - Fuente de la pieza: `Ejemplos_Devices/GPS/Ejemplo_Maui_GPS/` (material documental citable del dominio: `Ejemplos_Devices/GPS/Ejemplo_Docs_GPS/` — `Readme.md`, `secret.md`, `servicio.md`)
 - Mapa del sistema: [system-map](../../00-overview/system-map.md)

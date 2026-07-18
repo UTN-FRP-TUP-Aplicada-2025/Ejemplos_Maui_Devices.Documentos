@@ -198,6 +198,8 @@ Para llevar este patrón a una app real que deba **reaccionar a la pérdida de r
 
 ## Referencias
 
+- Patrón de overlays de dispositivo: [fundamento](../../01-architecture/07-overlays-dispositivos.md) · [catálogo de pantallas §5](../../01-architecture/08-pantallas-por-dispositivo.md#5-red) — el overlay de red **sólo existe en la app híbrida** (este ejemplo aislado no tiene UI cableada) y es el único reactivo del conjunto
+
 - Índice del dominio (ia-db): [07_Red-Conectividad](../../../../ia-db/indexes/07_Red-Conectividad.md)
 - Fuente de la pieza: `Ejemplos_Maui_Devices/Ejemplos_Devices/Red/Ejemplo_Maui_Connectivity/` (utilitario en `Utilities/ConnectivityTest.cs`)
 - Material documental citable: `Ejemplos_Maui_Devices/Ejemplos_Devices/Red/Ejemplo_Docs_Red/Readme.md` (tabla `NetworkAccess` + link a docs de Microsoft Learn sobre networking en MAUI)

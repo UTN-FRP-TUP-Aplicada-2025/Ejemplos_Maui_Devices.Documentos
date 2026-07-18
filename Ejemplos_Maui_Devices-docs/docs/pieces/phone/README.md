@@ -240,6 +240,8 @@ private static CallResult RealizarLlamadaAndroid(string numero)
 
 ## Referencias
 
+- Patrón de overlays de dispositivo: [fundamento](../../01-architecture/07-overlays-dispositivos.md) · [catálogo de pantallas §4](../../01-architecture/08-pantallas-por-dispositivo.md#4-telefonía) — mensajes literales y las variantes inalcanzables detectadas
+
 - Índice de dominio: [06_Telefonia.md](../../../../ia-db/indexes/06_Telefonia.md)
 - Mapa del sistema: [system-map](../../00-overview/system-map.md)
 - Fuentes (repo `Ejemplos_Maui_Devices` @24d611d):

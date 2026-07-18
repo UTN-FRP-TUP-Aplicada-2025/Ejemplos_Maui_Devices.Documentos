@@ -374,6 +374,8 @@ La clasificación **reusa `PrintError.FromException`** (público en `MotorDsl.Co
 
 Los reintentos reutilizan el último estado (`_lastRender`, `_lastDevice`, `_bytes`) sin re-renderizar; `_lastEraPredeterminada` conserva el rol del device para que reintentar no degrade el diagnóstico. La excepción es `PRN-DOC-NET`, único reintento que vuelve a la red. Fuente: `PrinterOverlayViewModel.cs`.
 
+> **Botón primario garantizado.** Toda pantalla de error debe tener exactamente un `Primary`; `OverlayActionStyle.Primary` es «el `DataTrigger` de `Secondary` no disparó», así que omitirlo no da error y deja la pantalla sin nada destacado. El helper `Cerrar(unico: true)` hace primario el «Cerrar» cuando es la única acción (`PrinterOverlayViewModel.cs`). Este invariante es uno de los cinco que verifica la suite de tests de la app híbrida, que además incluye una red de no-regresión de la copia integrada de este overlay — ver [índice 08 §9](08_App-Hibrida-Integrada.md).
+
 ---
 
 ## 11. Documentación rica — `Ejemplo_Docs_Printer`

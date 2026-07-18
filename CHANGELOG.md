@@ -3,6 +3,53 @@
 Cambios notables de la documentación de `Ejemplos_Maui_Devices` (`Ejemplos_Maui_Devices.Documentos`).
 Formato basado en [Keep a Changelog](https://keepachangelog.com/es-ES/1.1.0/).
 
+## [2026-07-17] — Armonización de overlays, primer proyecto de tests y recategorización CI
+
+Dos lotes de trabajo posteriores a la UX de impresión, acotados a la app híbrida
+(`Ejemplo_Maui_Hibrida`): los cuatro overlays de dispositivo se llevan al mismo patrón,
+nace el primer proyecto de tests de la solución y el workflow CI de la híbrida se
+recategoriza. La librería `MotorDsl.*` no se modificó (sigue en 1.0.13) y los ejemplos
+aislados de GPS/Red/Telefonía no se tocaron.
+
+### Agregado
+
+- **Suite de tests `Ejemplo_Maui_Hibrida.Tests`** — *primer proyecto de tests de toda la
+  solución* (índice 08 §9): 116 tests xUnit sobre `net10.0` plano que corren en CI/escritorio
+  **sin emulador ni dispositivo**, viable porque los ViewModels ya no tocan la plataforma.
+  Codifica los **cinco invariantes** del patrón de overlay (una pantalla por variante,
+  variante siempre alcanzable, nada de mensajes crudos, un único botón primario, el VM no
+  colapsa la variante). Arrancó en 34 rojos que reproducían defectos documentados y cerró
+  en 116/116.
+- **Dos documentos de arquitectura de overlays** (`docs/01-architecture/`):
+  `07-overlays-dispositivos.md` (ARCH-OVL-001, el *porqué* del patrón y cómo construir uno)
+  y `08-pantallas-por-dispositivo.md` (ARCH-OVL-002, catálogo de pantallas con los mensajes
+  literales del código).
+- **ADR-0009** (`docs/04-decisions/`): cierre determinista del overlay GPS (Opción A) y
+  cancelación robusta del puente de navegación; decisión *de diseño*, validada en dispositivo
+  real (moto_g42, Android).
+- **`README.md` de la carpeta `.Documentos`**: portada con las dos puertas de entrada
+  (conjunto documental para *entender*, `ia-db` para *ubicar*), atajos a lo más consultado y
+  el aviso de la API key de Google Maps hardcodeada.
+- **`Analisis/Plan-Armonizacion-Overlays.md`**: plan verificable de la armonización, ya
+  ejecutado (cinco invariantes cumplidos, 116 tests en verde).
+- **Reorganización de `PROMPTs/`** en subcarpetas `Comportamientos/`, `Documentacion/` e
+  `Implementar/`, con nuevos tool-prompts de análisis de comportamiento y de flujos end-to-end.
+
+### Modificado
+
+- **Armonización de los cuatro overlays** (GPS, Red, Telefonía, Impresión) al mismo patrón
+  que estrenó el de impresión (índice 08 §5.1): servicios detrás de interfaces
+  `I*Service` registradas por DI, `IUiDispatcher` que abstrae `MainThread`, catálogos de
+  error con código `GPS-*` y `TEL-*` (espejo de `PRN-*`) y un único botón primario por
+  pantalla de error. Eliminado código muerto (`case Success` inalcanzable, props sin
+  consumidor) y corregido el reporte de host en el fallo de DNS.
+- **Recategorización del workflow CI de la híbrida** (índice 09): `cd-ios-gps.Ejemplo_Maui_Hibrida.yml`
+  → `cd-ios-Integrada.Ejemplo_Maui_Hibrida.yml` (contenido idéntico; nueva categoría
+  `Integrada`). Siguen siendo 18 workflows; GPS queda con 1.
+- **ia-db actualizada a v1.2**: notas de sincronización incremental (v1.1 y v1.2), índice 00
+  (árbol y tabla con el proyecto de tests), índice 08 (§5.1 armonización, §9 suite de tests)
+  e índice 10 (referencia de estilo del CHANGELOG y puntero a la entrada más reciente).
+
 ## [2026-07-16] — Catálogo de errores de impresión y documento tipado
 
 Actualización de los índices ia-db de impresión tras el rediseño del manejo de fallos

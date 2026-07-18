@@ -38,7 +38,7 @@ El `WebView` carga `https://aplicada.somee.com` (`Pages/MainPage.xaml.cs:17`). S
 | Toolkit | `UseMauiCommunityToolkit` + `...Core` + `...Camera` | `MauiProgram.cs:36-38` |
 | QR | `UseBarcodeScanning()` (BarcodeScanning.Native.Maui 3.0.4) | `MauiProgram.cs:50` |
 | Impresión | `AddMotorDslEngine()` + `AddProfiles(...)` + `AddMotorDslMaui()` + `AddBluetoothPrinterTransport()` | `MauiProgram.cs:54-63` |
-| Servicios device | `GpsService`, `NetworkService`, `CallService`, `ApiRelayService`, `PrinterService` (singletons) | `MauiProgram.cs:76,86-90` |
+| Servicios device | `IGpsService→GpsService`, `INetworkService→NetworkService`, `ICallService→CallService`, `IPrinterService→PrinterService`, `IUiDispatcher→MainThreadDispatcher`, `ApiRelayService` (singletons) — **registrados por interfaz** para que los overlays dependan de la abstracción y los tests inyecten fakes | `MauiProgram.cs:77,87-92` |
 | Bridge/páginas | `IWebViewBridge→WebViewBridge`, `IImageService→ImageDeviceAutoRotateService`, páginas de cámara | `MauiProgram.cs:94-97` |
 | Handlers URL | 7 `IUrlCommandHandler` + `UrlCommandDispatcher` (orden de registro = orden de evaluación) | `MauiProgram.cs:108-115` |
 
@@ -76,18 +76,19 @@ LibApp/
 └── Devices/                           Dispositivos consolidados (reutilizan los ejemplos aislados) — ver §5
     ├── Common/                        Base compartida de overlays
     │   ├── Controls/StatusOverlayView.xaml(.cs)   Capa visual busy/error sobre el WebView
+    │   ├── Services/IUiDispatcher.cs  Abstracción de MainThread (BeginInvoke) + impl. MainThreadDispatcher; solo la usa el overlay de Red (§5.1)
     │   └── ViewModels/StatusOverlayViewModel.cs   Estados None/Busy/Error + OverlayAction
     ├── Camera/Pages/                  MyMediaPickerPage, MyMediaSelfiePickerPage (captura con callback)
-    ├── GPS/                           GpsService + GpsOverlayViewModel + Models(GpsResult, LocationPermissionResult)
+    ├── GPS/                           IGpsService→GpsService + GpsOverlayViewModel + Models(GpsResult, GpsFailure, GpsErrorCatalog(GPS-*), LocationPermissionResult)
     │   └── ApiRelayService.cs         Relay REST genérico con allowlist de hosts (usado por SendApi)
     ├── Images/                        IImageService + ImageDeviceAutoRotateService + SelfieMaskDrawable
-    ├── Networks/                      NetworkService + NetworkOverlayViewModel + NetworkResult
-    ├── Phone/                         CallService + CallOverlayViewModel + Models(CallMode, CallResult…)
+    ├── Networks/                      INetworkService→NetworkService + NetworkOverlayViewModel + NetworkResult
+    ├── Phone/                         ICallService→CallService + CallOverlayViewModel + Models(CallMode, CallResult…, CallFailure + CallErrorCatalog(TEL-*))
     ├── QRLector/                      QRLectorPage + QRContent
     └── MotorDSL/                      Impresión térmica Bluetooth — ver §6
         ├── DTOs/Print/               PrintDocument, PrintNode, PrintStyle, N (fábrica de nodos)
-        ├── Models/                   BluetoothPermissionResult, DiscoverResult, PrintResult
-        ├── Services/                 PrinterService, BluetoothPermissions
+        ├── Models/                   BluetoothPermissionResult, DiscoverResult, PrintResult, PrintFailure, PrinterErrorCatalog(PRN-*), DocumentResult
+        ├── Services/                 IPrinterService→PrinterService, BluetoothPermissions
         ├── ViewModels/               PrinterOverlayViewModel (orquesta permisos→discover→conectar→imprimir)
         └── Pages/                    OverlayBlueToothThermalPrintPage (contenedor vacío)
 ```
@@ -184,6 +185,21 @@ Cada dispositivo **reutiliza el mismo patrón que su ejemplo aislado** (Service 
 | `MotorDSL/` (impresión térmica) | `Printer/Ejemplo_MotorDSL` · `Ejemplo_ThermalPrinter` | **[Índice 03](03_Impresion-Termica.md)** |
 
 Base común de overlays: `Common/Controls/StatusOverlayView.xaml` + `Common/ViewModels/StatusOverlayViewModel.cs` (estados `None/Busy/Error`, `ShowBusy/ShowError/Hide`, `OverlayAction`). Todos los `*OverlayViewModel` (GPS, Network, Call, **Printer**) heredan de esa base — ver `PrinterOverlayViewModel.cs:17`.
+
+### 5.1 Armonización de overlays y costuras de test
+
+Los cuatro overlays (GPS, Red, Telefonía, Impresión) se llevaron al mismo patrón que el de impresión ya había estrenado: **resultado tipado → una pantalla por variante → catálogo de errores con código → costura de interfaz**. Se aplicó el plan `Ejemplos_Maui_Devices.Documentos/Analisis/Plan-Armonizacion-Overlays.md`; la librería `MotorDsl.*` no se tocó (sigue en 1.0.13).
+
+| Aspecto | Antes | Ahora | Fuente |
+|---|---|---|---|
+| Costura de servicio | los VM dependían del tipo concreto (estáticos MAUI `Preferences`/`Permissions`/`AppInfo`, no ejercitables fuera del dispositivo) | interfaces `IGpsService`, `ICallService`, `INetworkService`, `IPrinterService` — registradas en DI (`MauiProgram.cs:77,87-91`) | `*/Services/I*.cs` |
+| Hilo de UI | `NetworkOverlayViewModel` tocaba `MainThread`/`AppInfo` directo (único overlay reactivo) | delega en `IUiDispatcher` (`Common/Services/IUiDispatcher.cs`; impl. `MainThreadDispatcher`) | `NetworkOverlayViewModel.cs:25,34,43` |
+| Errores GPS/Telefonía | GPS escribía el fallo en `Coordenadas` (sin binding) y ocultaba el overlay; Telefonía mostraba `f.Message` crudo en inglés | catálogos `GpsErrorCatalog` (`GPS-*`) y `CallErrorCatalog` (`TEL-*`), espejo del de impresión (`PRN-*`): mensaje accionable en español + código dictable, con el técnico preservado para log | `GPS/Models/GpsErrorCatalog.cs`, `Phone/Models/CallFailure.cs` |
+| Botón primario | omitir `Primary` no daba error → pantallas con solo «Cerrar» quedaban sin botón destacado | toda pantalla de error tiene exactamente un `Primary`; «Cerrar» pasa a primario cuando es la única acción | invariante I-4 (§9) |
+| Código muerto | `case Success` inalcanzable (un guard previo retornaba), props `Coordenadas`/`Estado` sin consumidor, `GpsService.CheckAsync()`/`Map()` sin llamadores | eliminados | `GpsService.cs` |
+| Fallo de DNS | `NetworkService.CheckUrlAsync(url,…)` ignoraba `url` y reportaba el host de la sonda | reporta el host del sitio pedido (la sonda sigue a un endpoint fijo para detectar portal cautivo) | `Networks/Services/NetworkService.cs` |
+
+Los tres records de fallo (`GpsFailure`, `CallFailure`, `PrintFailure`) comparten forma (`Code · Title · UserMessage · TechnicalMessage` [+ `Exception?` en impresión]) deliberadamente **sin** unificarse en `Common/` (decisión documentada en `GpsFailure.cs`).
 
 ---
 
@@ -348,10 +364,38 @@ Réplica del contrato de GDA.Core.API.Client (`Models/PrintActa/*`). El árbol s
 | Guardrail de red | `ApiRelayService` restringe hosts a una allowlist; verbos ≠ Post/Get → `Blocked` | `ApiRelayService.cs:14-17,30-31` |
 | Bug de iOS (Canal A) | El circuito SignalR no se sostiene en WKWebView sobre host gratuito; la web se ve pero los `@onclick` mueren. Diagnóstico completo fuera de este índice | `Docs/web-hibrida/maui-hibrido.md` §7 |
 | Target sólo Android/iOS | El `.csproj` no compila Windows (`WindowsPackageType=None`); BT Classic SPP es Android-only | `csproj:4-5`, `PrinterService.cs:21-26` |
+| Costura de interfaz por servicio | Los `*OverlayViewModel` dependen de `I*Service` (no del tipo concreto) → registrables en DI y sustituibles por fakes en test; `IUiDispatcher` abstrae `MainThread` para el único overlay reactivo (Red) | §5.1, `MauiProgram.cs:77,87-91` |
+| Tests sin dispositivo | Proyecto `net10.0` plano que linkea fuentes platform-free y codifica los 5 invariantes del patrón; una variante sin pantalla rompe la suite | §9 |
 
 ---
 
-## 9. Referencias
+## 9. Suite de tests (`Ejemplo_Maui_Hibrida.Tests`)
+
+**Primer proyecto de tests de toda la solución.** 116 tests xUnit sobre `net10.0` plano que corren en el runner de escritorio/CI **sin emulador ni dispositivo** — viable porque los ViewModels ya no tocan la plataforma y los servicios quedan detrás de interfaces (§5.1). Fuente: `Ejemplos_Devices/Integrada/Ejemplo_Maui_Hibrida.Tests/`.
+
+| Aspecto | Detalle | Fuente |
+|---|---|---|
+| Target / paquetes | `net10.0` (no `-android`), `UseMaui=true`; `Microsoft.NET.Test.Sdk 17.11.1`, `xunit 2.9.2`, `xunit.runner.visualstudio 2.8.2`, `CommunityToolkit.Mvvm 8.4.2`, `MotorDsl.Core`/`Printing.Abstractions 1.0.13` | `Ejemplo_Maui_Hibrida.Tests.csproj` |
+| Acceso al código | **linkeo de fuentes** (`<Compile Include… Link=…>`), no `ProjectReference`: la app es `net10.0-android` y un `net10.0` plano no puede referenciarla. Solo se linkean Models, las interfaces `I*Service`/`IWebViewBridge`/`IUiDispatcher` y los 4 `*OverlayViewModel` — nunca los servicios concretos (tienen `#if ANDROID` y estáticos MAUI) | `.csproj:41-67` |
+| Dobles | `Fakes/Fakes.cs`: fakes a mano de las 6 interfaces (`FakeGpsService`, `FakeCallService`, `FakeNetworkService`, `FakeUiDispatcher` [ejecuta inline], `FakeWebViewBridge`, `FakePrinterService`) | `Fakes/Fakes.cs` |
+
+**Los cinco invariantes del patrón, ejecutables** (`Invariantes.cs`, helpers invocados por cada test de overlay):
+
+| # | Invariante | Cómo se comprueba |
+|---|---|---|
+| I-1 | Toda variante no-`Success` produce **exactamente una pantalla** | `Mode==Error`, `Actions.Count>0`, `Title`/`Message` no vacíos |
+| I-2 | Toda variante del resultado tipado **tiene** pantalla (es alcanzable) | reflexión sobre los tipos sellados anidados vs. cubiertos por los tests |
+| I-3 | Ningún **mensaje crudo** del sistema llega al usuario | `Assert.False(Message.Contains(textoTecnico))` |
+| I-4 | Toda pantalla de error tiene **un único** botón primario | cuenta `Actions` con `Style==Primary` == 1 |
+| I-5 | El VM **no colapsa** la variante: devuelve la que recibió | compara tipo de entrada vs. salida (en `GpsOverlayTests`) |
+
+> Agregar una variante sin pantalla ahora **rompe la suite** (I-2) — es lo que C# no verifica y lo que dejó a `BluetoothOff` inalcanzable durante toda la vida del PoC (ver [índice 03 §10.2](03_Impresion-Termica.md)). La suite arrancó en 34 rojos (GPS 21, Telefonía 7, Impresión 3, Red 3) que reproducían los defectos documentados, y cerró en 116/116. Pendiente: verificación en dispositivo real (que la decisión del VM llegue a la pantalla y que los glyphs existan en la fuente). No hay workflow CI para esta suite (índice 09).
+
+Archivos de test: `BaseOverlayTests` (máquina None/Busy/Error de `StatusOverlayViewModel`), `GpsOverlayTests`, `CallOverlayTests`, `NetworkOverlayTests` (único reactivo, ejercita `ConnectivityChanged`), `PrinterOverlayTests` (red de no-regresión del dominio ya validado en dispositivo), `PrinterErrorCatalogTests` (función pura `Describe`).
+
+---
+
+## 10. Referencias
 
 - Fuente primaria: `Ejemplos_Devices/Integrada/Ejemplo_Maui_Hibrida/` y `Ejemplos_Devices/Integrada/Ejemplo_ws_Blazor/`.
 - Docs de dominio (Canal A/B, por comando): `Ejemplos_Devices/Docs/web-hibrida/` (`maui-hibrido.md`, `lectura-qr.md`, `captura-foto.md`, `llamada.md`, `envio-api.md`).

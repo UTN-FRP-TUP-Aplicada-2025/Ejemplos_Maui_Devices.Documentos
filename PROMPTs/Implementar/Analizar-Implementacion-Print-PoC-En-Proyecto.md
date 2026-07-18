@@ -1,7 +1,7 @@
 # Tool-Prompt — Analizar implementación PoC en Producción
 
 > **Invocación**:
-> - `Lee y ejecuta /IA.Prompting.Templates/PromptFramework/Examples/Analizar-Implementacion-Print-PoC-En-Proyecto.md`
+> - `Lee y ejecuta /Ejemplos_Maui/Ejemplos_Maui_Devices.Documentos/PROMPTs/Implementar/Analizar-Implementacion-Print-PoC-En-Proyecto.md`
 
 ---
 
@@ -35,7 +35,7 @@ En el proyecto `Ejemplo_Maui_Hibrida`hay una implementación parcial del comando
 
 ## Rule Set
 
-- `/IA.Prompting.Templates/PromptFramework/RuleSets/RuleSet-Lean.md`
+- `/IA/IA.Prompts/PromptFramework/RuleSets/RuleSet-Lean.md`
 
 
 

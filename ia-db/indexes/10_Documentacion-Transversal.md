@@ -135,9 +135,9 @@ Reglas críticas de `res/raw` (rompieron el build original): nombres solo `[a-z0
 - **Formato**: [Keep a Changelog](https://keepachangelog.com/es-ES/1.1.0/) en **es-ES** (`CHANGELOG.md:1-4`).
 - **Alcance declarado**: "Cambios notables de los ejemplos de dispositivos MAUI (`Ejemplos_Maui_Devices`)".
 - **Estructura de entrada**: encabezado `## [AAAA-MM-DD] — <título>` seguido de subsecciones **`### Agregado` / `### Cambiado`** (categorías Keep a Changelog: Added/Changed/…).
-- **Estilo**: viñetas con rutas y símbolos concretos en `código`, agrupadas por área (p. ej. `LibApp/…`, `DTOs/Print/…`, versiones de paquetes `MotorDsl.* 1.0.12 → 1.0.13`), incluyendo cambios de CI (referencia a `cd-ios-gps.Ejemplo_Maui_Hibrida.yml`).
+- **Estilo**: viñetas con rutas y símbolos concretos en `código`, agrupadas por área (p. ej. `LibApp/…`, `DTOs/Print/…`, versiones de paquetes `MotorDsl.* 1.0.12 → 1.0.13`), incluyendo cambios de CI (p. ej. la recategorización del workflow de la híbrida a `cd-ios-Integrada.Ejemplo_Maui_Hibrida.yml`; ver índice 09).
 
-> Entrada más reciente al momento del índice: `## [2026-07-13] — Impresión térmica MotorDSL + reorganización a LibApp/`. **No se copian entradas aquí**; consultar `CHANGELOG.md` para el detalle vigente.
+> Entrada más reciente al momento del índice: `## [2026-07-17] — Armonización de los overlays de dispositivo y primer proyecto de tests` (precedida por `## [2026-07-16] — UX de impresión`). **No se copian entradas aquí**; consultar `CHANGELOG.md` para el detalle vigente.
 
 ---
 

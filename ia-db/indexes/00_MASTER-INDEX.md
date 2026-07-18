@@ -44,7 +44,7 @@ Ejemplos_Maui_Devices/
     ├── Maps/       Ejemplo_Maui_Mapas + Ejemplo_Docs_Maps                              → Índice 05
     ├── Phone/      Ejemplo_Maui_Dialer · Ejemplo_Maui_DirectCall                       → Índice 06
     ├── Red/        Ejemplo_Maui_Connectivity + Ejemplo_Docs_Red                        → Índice 07
-    ├── Integrada/  Ejemplo_Maui_Hibrida (WebView) · Ejemplo_ws_Blazor (backend)        → Índice 08
+    ├── Integrada/  Ejemplo_Maui_Hibrida (WebView) · Ejemplo_ws_Blazor (backend) · Ejemplo_Maui_Hibrida.Tests (116 tests xUnit) → Índice 08
     ├── Docs/       Certificados-SSL · qr-nuget · web-hibrida · otros                   → Índices 02/08/10
     └── scripts/    .bat de arranque local (Android físico)                             → Índice 09
 ```
@@ -85,6 +85,7 @@ Ejemplos_Maui_Devices/
 | `Red/Ejemplo_Maui_Connectivity` | Red | Estado y cambios de conectividad |
 | `Integrada/Ejemplo_Maui_Hibrida` | Integrada | WebView + puente de comandos por URL |
 | `Integrada/Ejemplo_ws_Blazor` | Integrada | Backend Blazor (comprobante, geo, pagos fake) |
+| `Integrada/Ejemplo_Maui_Hibrida.Tests` | Integrada | **Primer proyecto de tests de la solución**: 116 tests xUnit (`net10.0`, sin dispositivo) sobre los overlays de la híbrida (índice 08 §9) |
 
 ## 6. Decisiones y convenciones clave
 

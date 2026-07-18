@@ -10,16 +10,17 @@
 
 - El repo publica en CI **solo iOS (simulador)**. Cada ejemplo tiene **su propio workflow** reutilizable (`workflow_call`) en `.github/workflows/`.
 - El arranque **local** es distinto: los `.bat` de `Ejemplos_Devices/scripts/` despliegan a **Android físico** (`net10.0-android -t:Run`).
-- Convención de nombre de workflow: **`cd-ios-<categoria>.<Ejemplo>.yml`** (categorías: `camera`, `gps`, `phone`, `printer`, `qr`).
+- Convención de nombre de workflow: **`cd-ios-<categoria>.<Ejemplo>.yml`** (categorías: `camera`, `gps`, `phone`, `printer`, `qr`, `Integrada`).
 - Runner CI: `macos-15` (Apple Silicon). SDK .NET instalado en el runner: **10.0.300**; workload manifest: **10.0.100**; target: **net10.0-ios**. (Ver §5.)
 
 ```
 .github/workflows/
-├── cd-ios-camera.*.yml   (4)   ┐
-├── cd-ios-gps.*.yml      (2)   │
-├── cd-ios-phone.*.yml    (2)   ├─ 18 workflows reutilizables (workflow_call)
-├── cd-ios-printer.*.yml  (1)   │
-├── cd-ios-qr.*.yml       (9)   ┘
+├── cd-ios-camera.*.yml    (4)   ┐
+├── cd-ios-gps.*.yml       (1)   │
+├── cd-ios-Integrada.*.yml (1)   │
+├── cd-ios-phone.*.yml     (2)   ├─ 18 workflows reutilizables (workflow_call)
+├── cd-ios-printer.*.yml   (1)   │
+├── cd-ios-qr.*.yml        (9)   ┘
 ├── Readme.md                   # versiones de workload .NET (dev local)
 ├── Pipelinea-Version.md        # bitácora de versiones del yml
 └── Analisis/                   # logs de ejecuciones CI (log_1.md, log_2.md)
@@ -32,7 +33,7 @@
 | Elemento | Valor | Fuente |
 |---|---|---|
 | Patrón de archivo | `cd-ios-<categoria>.<Ejemplo>.yml` | listado `.github/workflows/` |
-| Categorías | `camera`, `gps`, `phone`, `printer`, `qr` | prefijos de los `.yml` |
+| Categorías | `camera`, `gps`, `phone`, `printer`, `qr`, `Integrada` | prefijos de los `.yml` |
 | Trigger activo | **`workflow_call:`** (reutilizable; sin `push`/`schedule` propios) | p.ej. `cd-ios-qr.CS.LectorQR.yml:15` |
 | Trigger `push` | **comentado** (branch `main`, con `paths:` por carpeta del ejemplo) | `cd-ios-qr.CS.LectorQR.yml:5-13` |
 | `name:` interno | `CD iOS - <Categoria> - <Ejemplo>` | `cd-ios-gps.Ejemplo_GPS.yml:1` |
@@ -49,7 +50,8 @@
 | Categoría | Nº workflows | `PROJECTS_ROOT` (carpeta) | Notas |
 |---|---|---|---|
 | **camera** | 4 | `Camera` | MediaPicker/Selfie (callback, task, normalización) |
-| **gps** | 2 | `GPS`, `Integrada` | incluye `Ejemplo_Maui_Hibrida` (root `Integrada`) |
+| **gps** | 1 | `GPS` | solo `Ejemplo_GPS` (la híbrida se movió a la categoría `Integrada`) |
+| **Integrada** | 1 | `Integrada` | `Ejemplo_Maui_Hibrida` — categoría propia desde `cd-ios-Integrada.*` |
 | **phone** | 2 | `Phone` | Dialer y DirectCall |
 | **printer** | 1 | `Printer` | MotorDSL (impresión térmica) |
 | **qr** | 9 | `QR` | 4 librerías QR × {simple, dialog} + genérico |
@@ -64,7 +66,7 @@
 | camera | `cd-ios-camera.Ejemplo_Photo_MiMediaPicker_Task.yml` | `Ejemplo_Photo_MiMediaPicker_Task` | `com.ejemplos.devices.mimediapicker.task` | arm64 |
 | camera | `cd-ios-camera.Ejemplo_Photo_MiMediaSelfie_Callback_Normalizacion.yml` | `Ejemplo_Photo_MiMediaSelfie_Callback_Normalizacion` | `com.ejemplos.devices.imagen.callback.normalizacion.miselfie` | arm64 |
 | gps | `cd-ios-gps.Ejemplo_GPS.yml` | `Ejemplo_Maui_GPS` | `com.ejemplos.devices.gps` | arm64 |
-| gps | `cd-ios-gps.Ejemplo_Maui_Hibrida.yml` | `Ejemplo_Maui_Hibrida` | `com.ejemplos.devices.integrada.hibrida` | arm64 |
+| Integrada | `cd-ios-Integrada.Ejemplo_Maui_Hibrida.yml` | `Ejemplo_Maui_Hibrida` | `com.ejemplos.devices.integrada.hibrida` | arm64 |
 | phone | `cd-ios-phone.Ejemplo_Dialer.yml` | `Ejemplo_Maui_Dialer` | `com.ejemplos.phone.dialer` | arm64 |
 | phone | `cd-ios-phone.Ejemplo_DirectCall.yml` | `Ejemplo_Maui_DirectCall` | `com.ejemplos.phone.directcall` | arm64 |
 | printer | `cd-ios-printer.Ejemplo_MotorDSL.yml` | `Ejemplo_MotorDSL` | `com.ejemplos.devices.MotorDSL` | arm64 |

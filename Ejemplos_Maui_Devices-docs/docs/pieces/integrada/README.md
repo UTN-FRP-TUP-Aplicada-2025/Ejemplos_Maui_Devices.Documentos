@@ -330,6 +330,8 @@ Cómo agregar un comando nuevo de punta a punta (ejemplo sintético: `vibrar=vib
 
 ## Referencias
 
+- Patrón de overlays de dispositivo: [fundamento](../../01-architecture/07-overlays-dispositivos.md) · [catálogo de pantallas](../../01-architecture/08-pantallas-por-dispositivo.md#6-contraste-transversal) — los cuatro overlays consolidados en `LibApp/Devices/`, su z-order en `MainPage.xaml` y por qué Cámara y QR quedaron fuera del patrón
+
 - Índice ia-db (fuente primaria del relevamiento): [08_App-Hibrida-Integrada.md](../../../../ia-db/indexes/08_App-Hibrida-Integrada.md)
 - Contrato máquina-legible del puente + endpoints: [bridge-contract.md](bridge-contract.md)
 - Mapa del sistema: [system-map](../../00-overview/system-map.md)

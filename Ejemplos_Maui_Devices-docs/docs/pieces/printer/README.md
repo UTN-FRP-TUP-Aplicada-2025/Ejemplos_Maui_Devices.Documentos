@@ -77,7 +77,8 @@ Ejemplos_Devices/Printer/
 ├── Ejemplo_MotorDSL_Dialog/         → motor DSL + overlay MVVM
 │   ├── Services/                       PrinterService, BluetoothPermissions
 │   ├── ViewModels/                     MainViewModel, PrinterOverlayViewModel, StatusOverlayViewModel
-│   ├── Models/                         DiscoverResult, PrintResult, BluetoothPermissionResult
+│   ├── Models/                         DiscoverResult, PrintResult, BluetoothPermissionResult,
+│   │                                   PrintFailure + PrinterErrorCatalog (códigos PRN-*)
 │   └── Samples/MultaIntegratedDsl.cs   misma acta (namespace Ejemplo_MotorDSL.Templates)
 └── Ejemplo_Docs_Printer/            → documentación del origen (manuales, prompts, pruebas)
 ```
@@ -162,13 +163,20 @@ Narrado con el acta: al tocar "Imprimir ejemplo", el motor recibe el JSON y el p
 
 | Situación | Capa del overlay | Acciones |
 |---|---|---|
-| Verificando permisos / buscando / conectando / enviando | Busy (`timer.gif`) | — |
+| Obteniendo comprobante / permisos / buscando / conectando / enviando | Busy (`timer.gif`) | — |
 | Render falló · permiso `Restricted` · plataforma no soportada | Error | Cerrar |
 | Permiso `DeniedCanRetry` / `Denied` | Error | Pedir permiso / Abrir configuración · Cerrar |
-| Sin impresoras / Bluetooth apagado | Error | Reintentar (± Abrir configuración) · Cerrar |
+| Sin impresoras | Error | Reintentar · Emparejar impresora · Cerrar |
+| Bluetooth apagado / permiso revocado | Error | Activar Bluetooth / Abrir configuración · Reintentar · Cerrar |
 | Varias impresoras (sin predeterminada en la lista) | Error (selector) | Un botón por dispositivo · Cerrar |
-| Conexión o envío fallidos | Error | Reintentar (± Elegir otra) · Cerrar |
+| La **predeterminada** no conecta (`PRN-DEV-ABSENT`) | Error | Reintentar · Elegir otra impresora¹ · **Olvidar y emparejar otra** · Cerrar |
+| Una impresora **elegida** no conecta (`PRN-CONN-FAIL`) | Error | Reintentar · Elegir otra · Cerrar |
+| Envío falló | Error | Según el código: «Ya cargué papel — Reintentar», «Ya la cerré — Reintentar», Reintentar (± Elegir otra) · Cerrar |
 | Envío OK | Overlay oculto (`Hide()`) | — |
+
+¹ Sólo si hay más de una emparejada.
+
+> **Actualizado el 2026-07-16.** El flujo se corrigió a partir del [análisis UX](../../../../../../Librerias/PrintThermal_Motor_Maui.Documentacion/Analisis/Analisis-UX-UI.md): los errores ahora llevan un **código de soporte** (`PRN-*`) con mensaje en español, conservando el original para log; los estados «Bluetooth apagado» y «permiso revocado» —que eran inalcanzables— hoy se producen; y las impresoras homónimas se desambiguan por alias o sufijo de MAC. **La librería `MotorDsl.*` no cambió** (sigue en 1.0.13). Catálogo completo de pantallas y mensajes: [08-pantallas-por-dispositivo §2](../../01-architecture/08-pantallas-por-dispositivo.md#2-impresión-térmica); fundamento del patrón: [07-overlays-dispositivos](../../01-architecture/07-overlays-dispositivos.md).
 
 ## Cómo ejecutar
 
@@ -359,6 +367,7 @@ public class BluetoothPermissions : Permissions.BasePlatformPermission
 
 ## Referencias
 
+- Patrón de overlays de dispositivo: [fundamento](../../01-architecture/07-overlays-dispositivos.md) · [catálogo de pantallas §2](../../01-architecture/08-pantallas-por-dispositivo.md#2-impresión-térmica) — catálogo completo de códigos `PRN-*` y sus pantallas
 - Índice ia-db del dominio: [`03_Impresion-Termica.md`](../../../../ia-db/indexes/03_Impresion-Termica.md)
 - Mapa del sistema: [`system-map.md`](../../00-overview/system-map.md)
 - Operación (build/run): [`build-and-run.md`](../../07-operations/build-and-run.md)

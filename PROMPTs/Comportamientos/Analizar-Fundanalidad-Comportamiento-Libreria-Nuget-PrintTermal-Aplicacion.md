@@ -1,7 +1,7 @@
 # Tool-Prompt — Aplicar correcciones 
 
 > **Invocación**:
-> - `Lee y ejecuta /IA.Prompting.Templates/PromptFramework/Examples/Ejemplos_Maui_Device/Analizar-Fundanalidad-Comportamiento-Libreria-Nuget-PrintTermal-Aplicacion.md`
+> - `Lee y ejecuta /Ejemplos_Maui/Ejemplos_Maui_Devices.Documentos/PROMPTs/Analizar-Fundanalidad-Comportamiento-Libreria-Nuget-PrintTermal-Aplicacion.md`
 
 ---
 
@@ -65,7 +65,7 @@ y la librería si corresponde:
 
 Aplicar:
 
-- `/IA.Prompting.Templates/PromptFramework/Profiles/Code-Review.md`
+- `/IA/IA.Prompts/PromptFramework/Profiles/Code-Review.md`
 
 
 

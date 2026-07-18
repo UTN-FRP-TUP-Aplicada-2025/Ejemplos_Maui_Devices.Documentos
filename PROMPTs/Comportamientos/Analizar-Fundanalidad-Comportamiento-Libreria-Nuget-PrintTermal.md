@@ -1,7 +1,7 @@
 # Tool-Prompt — Analizar capacidades de librería 
 
 > **Invocación**:
-> - `Lee y ejecuta /IA.Prompting.Templates/PromptFramework/Examples/Ejemplos_Maui_Device/Analizar-Fundanalidad-Comportamiento-Libreria-Nuget-PrintTermal.md`
+> - `Lee y ejecuta /Ejemplos_Maui/Ejemplos_Maui_Devices.Documentos/PROMPTs/Analizar-Fundanalidad-Comportamiento-Libreria-Nuget-PrintTermal.md`
 
 ---
 
@@ -166,7 +166,7 @@ El dispositivo imprime el documento. Sino terminó por falta de papel o algun te
 
 Aplicar:
 
-- `/IA.Prompting.Templates/PromptFramework/Profiles/Code-Review.md`
+- `/IA/IA.Prompts/PromptFramework/Profiles/Code-Review.md`
 
 
 

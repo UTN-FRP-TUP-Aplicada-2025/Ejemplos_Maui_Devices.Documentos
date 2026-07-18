@@ -34,7 +34,7 @@
 | Targets | `net10.0-android`, `net10.0-ios` (iOS en CI/macOS) |
 | Dominios | Cámara · QR · Impresión térmica · GPS · Mapas · Telefonía · Red · App híbrida integrada |
 | Repo de código | `../../Ejemplos_Maui_Devices/` (hermano de esta carpeta `.Documentos`) |
-| Versión ia-db | 1.0 |
+| Versión ia-db | 1.2 |
 
 **Función principal.** Cada dispositivo de plataforma se presenta como uno o varios proyectos MAUI mínimos y comparables que contrastan enfoques de implementación; una app híbrida (`Ejemplo_Maui_Hibrida`) consolida todos los dispositivos detrás de un `WebView` con un puente de comandos por URL y un backend Blazor de apoyo.
 
@@ -78,6 +78,10 @@ ia-db/
 Sobre esta ia-db se generó el conjunto documental completo (Marco de Documentación de Software) en la carpeta hermana [`../Ejemplos_Maui_Devices-docs/`](../Ejemplos_Maui_Devices-docs/README.md): visión, mapa del sistema, arquitectura C4, vistas de runtime, 8 ADRs, catálogo de APIs, runbook, onboarding y un documento por dominio de dispositivo, más el [reporte de gap y derivas](../Ejemplos_Maui_Devices-docs/GAP-REPORT.md). Punto de entrada humano: [`../Ejemplos_Maui_Devices-docs/README.md`](../Ejemplos_Maui_Devices-docs/README.md); punto de entrada máquina: [`../Ejemplos_Maui_Devices-docs/docs-manifest.yaml`](../Ejemplos_Maui_Devices-docs/docs-manifest.yaml).
 
 > **Nota de sincronización (`@fd6a1ed`):** el origen avanzó del commit `24d611d` (que indexó esta ia-db) a `fd6a1ed` durante la documentación. Correcciones incrementales aplicadas: versión de `MotorDsl.*` en `Ejemplo_MotorDSL_Dialog` (1.0.12 → 1.0.13, índices [00](indexes/00_MASTER-INDEX.md)/[03](indexes/03_Impresion-Termica.md)) y Readmes invertidos del dominio Maps (índice [05](indexes/05_Mapas.md)). Detalle en el [GAP-REPORT §1](../Ejemplos_Maui_Devices-docs/GAP-REPORT.md).
+>
+> **Actualización incremental v1.1 (2026-07-17):** dos lotes de trabajo posteriores a `fd6a1ed`, todos acotados a la app híbrida (`Ejemplo_Maui_Hibrida`) y a `Ejemplo_MotorDSL_Dialog`; **la librería `MotorDsl.*` no se modificó** (sigue en 1.0.13) y los ejemplos aislados de GPS/Red/Telefonía **no se tocaron** (índices [04](indexes/04_GPS.md)/[06](indexes/06_Telefonia.md)/[07](indexes/07_Red-Conectividad.md) sin cambios). (1) *UX de impresión* (CHANGELOG 2026-07-16): catálogo de errores con código, `DocumentResult` tipado, salida al cambiar de impresora — ya reflejado en el [índice 03 §10](indexes/03_Impresion-Termica.md). (2) *Armonización de overlays y primer proyecto de tests* (CHANGELOG 2026-07-17): los cuatro overlays de la híbrida al mismo patrón (interfaces `I*Service`, `IUiDispatcher`, catálogos `GPS-*`/`TEL-*`) y `Ejemplo_Maui_Hibrida.Tests` (116 tests xUnit, 5 invariantes) — [índice 08 §5.1 y §9](indexes/08_App-Hibrida-Integrada.md).
+
+> **Actualización incremental v1.2 (2026-07-17):** el workflow CI de la app híbrida se **recategorizó** de `gps` a una categoría propia `Integrada`: `cd-ios-gps.Ejemplo_Maui_Hibrida.yml` → `cd-ios-Integrada.Ejemplo_Maui_Hibrida.yml` (contenido idéntico; solo cambia el archivo/categoría). Sigue habiendo **18 workflows** en total; GPS queda con 1. Corregido en el [índice 09](indexes/09_CI-CD-y-Build.md) (§1 árbol, §2 convención, §3.1/§3.2 tablas) y en el [índice 10 §4](indexes/10_Documentacion-Transversal.md) (referencia de estilo del CHANGELOG y puntero a la entrada más reciente, ahora `2026-07-17`). El resto de cambios del árbol de trabajo (armonización de overlays, tests, UX de impresión) ya estaban reflejados en v1.1; las utilidades de simulación en la raíz `Utilities/` (`flows/`, `end2end/`, `simular_ui.sh`) quedan fuera del alcance indexado.
 
 ## Manifiesto de generación
 
@@ -86,4 +90,5 @@ Sobre esta ia-db se generó el conjunto documental completo (Marco de Documentac
 - Fuentes      : Ejemplos_Devices/ (Camera, QR, Printer, GPS, Maps, Phone, Red, Integrada, Docs, scripts), .github/workflows/, README.md, CHANGELOG.md, vs.bat, .gitignore
 - Exclusiones  : .git, bin, obj, .vs, Platforms/*/Resources, wwwroot/lib, binarios/imágenes, artefactos de build, y lo ignorado por .gitignore
 - Generado     : 2026-07-14 · Versión: 1.0
-- Actualizar   : /IA.Prompting.Templates/Tool-Prompts/Actualizar-Indexado.md
+- Actualizado  : 2026-07-17 · Versión: 1.2 (incremental; recategorización CI de la híbrida — ver nota de sincronización)
+- Actualizar   : /IA/IA.Prompts/Tool-Prompts/Indexado/Actualizar-Indexado.md
