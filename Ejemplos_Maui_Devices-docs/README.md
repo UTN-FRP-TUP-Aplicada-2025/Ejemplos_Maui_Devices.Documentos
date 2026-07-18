@@ -104,6 +104,16 @@ La solución incluye una técnica de **prueba end2end sobre la UI real** que cor
 
 **Cómo funciona.** Maestro actúa por **texto/accessibility label**, no por `AutomationId`, así que un mismo YAML es portable (se puede autoría/validar en Android y correr en el simulador iOS). Convenciones: `launchApp` → `waitForAnimationToEnd` (8 s inicial por splash/WebView) → `tapOn: "<texto>"` por cada acción → `back`. Fallback por coordenada `tapOn: { point: "x%, y%" }`. **Límite conocido:** el simulador iOS no tiene cámara → las vistas de cámara/QR se ven negras; es esperado y sirve igual como evidencia de navegación.
 
+**Arranque del simulador en el runner (operación).** El boot del simulador es la parte frágil del pipeline. Aprendido en CI (2026-07):
+
+- **Síntoma:** el step de grabación se colgaba hasta agotar el `timeout-minutes` (30) con el simulador trabado en `Waiting on BackBoard`, que **nunca** completaba —ni tras `erase`—.
+- **Causa:** en un runner **headless** con Xcode instalado a mano, el boot por `xcrun simctl boot`/`bootstatus -b` no levanta el stack gráfico (BackBoard/SpringBoard) y espera para siempre.
+- **Fix (en `simular_ui.sh` + workflow):**
+  1. **Bootear levantando `Simulator.app`** (`open -a "$(xcode-select -p)/Applications/Simulator.app" --args -CurrentDeviceUDID <uuid>`). Los runners macOS de GitHub corren sesión GUI (Aqua), así que es automatizado; Maestro sigue manejando la app por `simctl`.
+  2. **Timeout + reintento limpio**: `bootstatus -b` acotado a 240 s; si se cuelga, `shutdown` + `erase` + reabrir GUI + 300 s. Peor caso ~9 min en vez de 30 (helper `run_with_timeout` con `perl alarm`).
+  3. **Precalentado**: se abre la GUI y se bootea en el step "Verificando simulador instalado" (fire-and-forget), para que el simulador arranque **durante el build** y no se pague el boot en frío. `simular_ui.sh` hace short-circuit si ya está `Booted`.
+  4. **Diagnóstico**: si el boot falla tras el reintento, vuelca las últimas líneas de `~/Library/Logs/CoreSimulator/CoreSimulator.log` para no quedar a ciegas.
+
 **Herramientas y posibilidades para *generar* el flujo por exploración** (ver el prompt [`Crear-Flow-End2End-App.md`](../PROMPTs/Implementar/Crear-Flow-End2End-App.md)):
 - **A — Barrido caja-negra (Android USB):** `adb` + `maestro hierarchy`/`uiautomator dump` para recorrer la UI y derivar el *storyboard*.
 - **B — Grabación de navegación:** `maestro record`/`maestro studio` capturan la sesión → se normaliza a las convenciones y se replaya en iOS.
