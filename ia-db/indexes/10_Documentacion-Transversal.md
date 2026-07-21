@@ -136,8 +136,9 @@ Reglas críticas de `res/raw` (rompieron el build original): nombres solo `[a-z0
 - **Alcance declarado**: "Cambios notables de los ejemplos de dispositivos MAUI (`Ejemplos_Maui_Devices`)".
 - **Estructura de entrada**: encabezado `## [AAAA-MM-DD] — <título>` seguido de subsecciones **`### Agregado` / `### Cambiado`** (categorías Keep a Changelog: Added/Changed/…).
 - **Estilo**: viñetas con rutas y símbolos concretos en `código`, agrupadas por área (p. ej. `LibApp/…`, `DTOs/Print/…`, versiones de paquetes `MotorDsl.* 1.0.12 → 1.0.13`), incluyendo cambios de CI (p. ej. la recategorización del workflow de la híbrida a `cd-ios-Integrada.Ejemplo_Maui_Hibrida.yml`; ver índice 09).
+- **Variantes de subsección observadas**: además de `### Agregado` / `### Cambiado`, se usan `### Corregido` y `### Activado`; varias entradas abren con una línea **`Alcance:`** que delimita qué se tocó (y aclara, cuando aplica, «No se tocó código de la app»).
 
-> Entrada más reciente al momento del índice: `## [2026-07-17] — Armonización de los overlays de dispositivo y primer proyecto de tests` (precedida por `## [2026-07-16] — UX de impresión`). **No se copian entradas aquí**; consultar `CHANGELOG.md` para el detalle vigente.
+> Entrada más reciente al momento del índice: `## [2026-07-18] — El video end2end ahora captura el recorrido completo (pre-warm + espera activa)`. Las tres entradas más recientes (`2026-07-18` ×3) cubren la **técnica de simulación end2end** de la app híbrida (flujo Maestro rehecho + activación del `push` del workflow, robustez del boot del simulador, pre-warm de la grabación) → efecto indexado en el **índice 09 §2 y §4.2**. **No se copian entradas aquí**; consultar `CHANGELOG.md` para el detalle vigente.
 
 ---
 

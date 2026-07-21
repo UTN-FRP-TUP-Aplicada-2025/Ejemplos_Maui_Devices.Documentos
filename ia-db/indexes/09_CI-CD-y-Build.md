@@ -34,12 +34,12 @@
 |---|---|---|
 | Patrón de archivo | `cd-ios-<categoria>.<Ejemplo>.yml` | listado `.github/workflows/` |
 | Categorías | `camera`, `gps`, `phone`, `printer`, `qr`, `Integrada` | prefijos de los `.yml` |
-| Trigger activo | **`workflow_call:`** (reutilizable; sin `push`/`schedule` propios) | p.ej. `cd-ios-qr.CS.LectorQR.yml:15` |
-| Trigger `push` | **comentado** (branch `main`, con `paths:` por carpeta del ejemplo) | `cd-ios-qr.CS.LectorQR.yml:5-13` |
+| Trigger activo | **`workflow_call:`** en los 18; **`push` activo solo en `cd-ios-Integrada.Ejemplo_Maui_Hibrida.yml`** | p.ej. `cd-ios-qr.CS.LectorQR.yml:15`; `cd-ios-Integrada.Ejemplo_Maui_Hibrida.yml:5-14` |
+| Trigger `push` | **comentado en 17 de 18** (branch `main`, con `paths:` por carpeta del ejemplo) | `cd-ios-qr.CS.LectorQR.yml:5-13` |
 | `name:` interno | `CD iOS - <Categoria> - <Ejemplo>` | `cd-ios-gps.Ejemplo_GPS.yml:1` |
 | Job | `publish-ios` sobre `runs-on: macos-15` | `cd-ios-gps.Ejemplo_GPS.yml:50-51` |
 
-> Al ser todos `workflow_call`, se invocan desde un orquestador externo o manualmente; el `.yml` por-ejemplo **no** dispara por sí mismo con push (el bloque `push:` está comentado). No hay un `cd-main.yml` orquestador presente en el árbol.
+> Los 17 workflows de camera/gps/phone/printer/qr son solo `workflow_call`: se invocan desde un orquestador externo o manualmente y **no** disparan por sí mismos con push (bloque `push:` comentado). No hay un `cd-main.yml` orquestador presente en el árbol. **Excepción**: `cd-ios-Integrada.Ejemplo_Maui_Hibrida.yml` tiene el `push` **activado** sobre `main` filtrado a `Ejemplos_Devices/Integrada/Ejemplo_Maui_Hibrida/**` (excluyendo `**.md`, `.gitignore`, `.gitattributes`), de modo que el flujo de simulación end2end corre automáticamente ante cambios de la app híbrida (ver §4.2).
 
 ---
 
@@ -51,7 +51,7 @@
 |---|---|---|---|
 | **camera** | 4 | `Camera` | MediaPicker/Selfie (callback, task, normalización) |
 | **gps** | 1 | `GPS` | solo `Ejemplo_GPS` (la híbrida se movió a la categoría `Integrada`) |
-| **Integrada** | 1 | `Integrada` | `Ejemplo_Maui_Hibrida` — categoría propia desde `cd-ios-Integrada.*` |
+| **Integrada** | 1 | `Integrada` | `Ejemplo_Maui_Hibrida` — categoría propia desde `cd-ios-Integrada.*`; único con `push` activo y con simulación **end2end/Maestro** (§4.2) |
 | **phone** | 2 | `Phone` | Dialer y DirectCall |
 | **printer** | 1 | `Printer` | MotorDSL (impresión térmica) |
 | **qr** | 9 | `QR` | 4 librerías QR × {simple, dialog} + genérico |
@@ -88,7 +88,7 @@
 
 ## 4. Pipeline iOS estándar
 
-Todos los workflows comparten la **misma secuencia** de steps (verificado en `cd-ios-qr.CS.LectorQR.yml`, `cd-ios-gps.Ejemplo_GPS.yml`, `cd-ios-camera.Ejemplo_Photo_MiMediaPicker_Callback.yml`). Difieren solo en el bloque `env:` (datos del proyecto) y en dos condicionales (ApiKeys, Rosetta).
+Todos los workflows comparten la **misma secuencia** de steps (verificado en `cd-ios-qr.CS.LectorQR.yml`, `cd-ios-gps.Ejemplo_GPS.yml`, `cd-ios-camera.Ejemplo_Photo_MiMediaPicker_Callback.yml`). Difieren solo en el bloque `env:` (datos del proyecto) y en dos condicionales (ApiKeys, Rosetta). La única variante estructural es la del ejemplo `Integrada` en el tramo final de simulación (§4.2).
 
 ```mermaid
 flowchart TD
@@ -133,6 +133,27 @@ flowchart TD
 | Evidencia | `brew install ffmpeg` + `Utilities/simular.sh` graba video → GIF (`continue-on-error`, `timeout-minutes: 30`) | `cd-ios-qr.CS.LectorQR.yml:431-463` |
 
 > El build **desactiva la firma real** (`EnableCodeSigning=false`, `CodesignKey="-"`) y luego re-firma **ad-hoc** manualmente: es un smoke test de simulador, **no** genera IPA firmado para distribución. El entregable es el `.app.zip` + un GIF de evidencia con retención de 1 día.
+
+### 4.2. Variante `Integrada` — simulación end2end con «dedo virtual»
+
+`cd-ios-Integrada.Ejemplo_Maui_Hibrida.yml` sigue el pipeline estándar hasta la publicación del `.app.zip`, pero **reemplaza el tramo de evidencia**: en vez de `Utilities/simular.sh` → GIF, ejecuta un recorrido automatizado sobre la UI real y sube un **video**.
+
+| Elemento | Valor | Fuente |
+|---|---|---|
+| `SCRIPT_SIMULATOR` | `./Utilities/simular_ui.sh` (los demás: `simular.sh`) | `cd-ios-Integrada.Ejemplo_Maui_Hibrida.yml:48` |
+| `MAESTRO_VERSION` | `1.41.0` (env exclusiva de este workflow) | `…Hibrida.yml:49` |
+| Step extra | «Instalar Maestro (dedo virtual)»: `curl -Ls https://get.maestro.mobile.dev \| bash` + `$HOME/.maestro/bin` al `PATH` | `…Hibrida.yml:438-443` |
+| Step de evidencia | «RELEASE SIMULADOR. GRABAR VIDEO (recorrido automatizado)» — `continue-on-error`, `timeout-minutes: 30` | `…Hibrida.yml:445-455` |
+| Artefacto | `recorrido.mp4` + `debug_logs/` + `app_stream_full.txt` (`upload-artifact@v5`, retención 1 día) | `…Hibrida.yml:457-466` |
+| Sin `brew install ffmpeg` | el video sale directo de `simctl io recordVideo` (no hay conversión a GIF) | `…Hibrida.yml` (ausencia del step) |
+
+**Arranque del simulador (endurecido).** El boot *headless* por `simctl` se cuelga en «Waiting on BackBoard» porque no levanta BackBoard/SpringBoard; por eso:
+
+- El step «Verificando simulador instalado» hace **precalentado por GUI, fire-and-forget**: `open -a "$(xcode-select -p)/Applications/Simulator.app"` + `xcrun simctl boot "$DEVICE_SIMULATOR" || true`, para que el simulador arranque durante el build (`…Hibrida.yml:161-171`).
+- `Utilities/simular_ui.sh` repite el patrón con cota: short-circuit si ya está `Booted`; si no, `bootstatus -b` con **240 s** → `shutdown`+`erase`+reapertura de GUI → reintento de **300 s**; si falla, vuelca `~/Library/Logs/CoreSimulator/CoreSimulator.log`. Peor caso ~9 min (antes, cuelgue de 30 min).
+- Antes de grabar hace **pre-warm** (lanza la app + `sleep 45`) y recién después arranca `simctl io … recordVideo --codec h264`, de modo que el arranque en frío no consume el video; el flujo Maestro usa `launchApp: { stopApp: false }` y espera activa (`extendedWaitUntil` sobre el botón `Geo Pos`, 120 s) en vez de un `waitForAnimationToEnd` fijo.
+
+> **Alcance.** El detalle interno de `Utilities/simular_ui.sh` y del flujo `Utilities/end2end/<PACKAGE_NAME>.yaml` **no se indexa** (decisión vigente desde v1.2); aquí se documenta solo su acoplamiento con el workflow. Descripción funcional para humanos: [`../../Ejemplos_Maui_Devices-docs/README.md`](../../Ejemplos_Maui_Devices-docs/README.md) § Pruebas End2End.
 
 ---
 
@@ -202,6 +223,7 @@ El `.gitignore` es la plantilla estándar `VisualStudio.gitignore` (ignora `bin/
 |---|---|
 | 18 workflows, patrón `cd-ios-<cat>.<Ejemplo>.yml` | `.github/workflows/*.yml` |
 | Pipeline estándar (steps) | `.github/workflows/cd-ios-qr.CS.LectorQR.yml` |
+| Variante end2end/Maestro + `push` activo | `.github/workflows/cd-ios-Integrada.Ejemplo_Maui_Hibrida.yml:5-14, 48-49, 161-171, 438-466` |
 | Variante con ApiKeys | `.github/workflows/cd-ios-gps.Ejemplo_GPS.yml:279-285` |
 | BSM usa RID x64 (Rosetta) | `.github/workflows/cd-ios-qr.BSM.LectorQR.yml:44-45` |
 | Versiones dev local | `.github/workflows/Readme.md` |

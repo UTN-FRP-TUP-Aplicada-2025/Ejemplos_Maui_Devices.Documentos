@@ -34,7 +34,7 @@
 | Targets | `net10.0-android`, `net10.0-ios` (iOS en CI/macOS) |
 | Dominios | Cámara · QR · Impresión térmica · GPS · Mapas · Telefonía · Red · App híbrida integrada |
 | Repo de código | `../../Ejemplos_Maui_Devices/` (hermano de esta carpeta `.Documentos`) |
-| Versión ia-db | 1.3 |
+| Versión ia-db | 1.4 |
 
 **Función principal.** Cada dispositivo de plataforma se presenta como uno o varios proyectos MAUI mínimos y comparables que contrastan enfoques de implementación; una app híbrida (`Ejemplo_Maui_Hibrida`) consolida todos los dispositivos detrás de un `WebView` con un puente de comandos por URL y un backend Blazor de apoyo.
 
@@ -85,6 +85,8 @@ Sobre esta ia-db se generó el conjunto documental completo (Marco de Documentac
 
 > **Actualización incremental v1.3 (2026-07-17):** las **pruebas end2end sobre la UI real** (Maestro «dedo virtual» + grabación de video en el simulador iOS: workflow `cd-ios-Integrada.Ejemplo_Maui_Hibrida.yml` → `Utilities/simular_ui.sh` → `Utilities/end2end/<PACKAGE_NAME>.yaml`) **siguen fuera del alcance indexado** (nota v1.2), pero ya **no quedan sin documentar**: el conjunto documental derivado las describe como puntero en su [README (§ Pruebas End2End)](../Ejemplos_Maui_Devices-docs/README.md). Verificado contra el origen `@a994257`; detalle en el [CHANGELOG documental](../CHANGELOG.md) (entrada «Documentación de pruebas End2End»). No cambió ningún índice temático (00–10): esta nota es solo una referencia cruzada.
 
+> **Actualización incremental v1.4 (2026-07-21):** seis commits posteriores a `a994257` (hasta `39e55e5`), **todos acotados a la técnica de simulación end2end de la app híbrida**; no cambió código funcional de ningún ejemplo (el único archivo `.cs` tocado, `Integrada/Ejemplo_Maui_Hibrida/App.xaml.cs`, solo varió en espacios en blanco). Cambios indexados en el [índice 09](indexes/09_CI-CD-y-Build.md): (1) el `push` sobre `main` del workflow `cd-ios-Integrada.Ejemplo_Maui_Hibrida.yml` pasó de **comentado a activo** (filtrado a `Ejemplos_Devices/Integrada/Ejemplo_Maui_Hibrida/**`) — corregidas las afirmaciones de §2 que daban «`push` comentado» para los 18 workflows; (2) nueva **§4.2** que documenta la variante `Integrada` del pipeline (env `SCRIPT_SIMULATOR: ./Utilities/simular_ui.sh` y `MAESTRO_VERSION: 1.41.0`, step de instalación de Maestro, artefacto `recorrido.mp4` en vez de GIF, boot del simulador por GUI con timeout/reintento y pre-warm de la grabación). En el [índice 10 §4](indexes/10_Documentacion-Transversal.md) se actualizó la entrada más reciente del CHANGELOG (`2026-07-18`) y se registraron las subsecciones `### Corregido` / `### Activado` y la línea `Alcance:`. Se mantiene la decisión de v1.2: el **detalle interno** de `Utilities/simular_ui.sh` y `Utilities/end2end/*.yaml` queda fuera del alcance indexado (solo se documenta su acoplamiento con el workflow). Sin cambios en los índices 00–08.
+
 ## Manifiesto de generación
 
 - Generado por : /IA.Prompting.Templates/Tool-Prompts/Iniciar-Indexado.md
@@ -92,5 +94,5 @@ Sobre esta ia-db se generó el conjunto documental completo (Marco de Documentac
 - Fuentes      : Ejemplos_Devices/ (Camera, QR, Printer, GPS, Maps, Phone, Red, Integrada, Docs, scripts), .github/workflows/, README.md, CHANGELOG.md, vs.bat, .gitignore
 - Exclusiones  : .git, bin, obj, .vs, Platforms/*/Resources, wwwroot/lib, binarios/imágenes, artefactos de build, y lo ignorado por .gitignore
 - Generado     : 2026-07-14 · Versión: 1.0
-- Actualizado  : 2026-07-17 · Versión: 1.3 (incremental; referencia cruzada a la documentación de pruebas End2End — ver nota de sincronización)
+- Actualizado  : 2026-07-21 · Versión: 1.4 (incremental; CI de la híbrida: `push` activo + variante end2end/Maestro del pipeline — origen `@39e55e5`, ver nota de sincronización)
 - Actualizar   : /IA/IA.Prompts/Tool-Prompts/Indexado/Actualizar-Indexado.md

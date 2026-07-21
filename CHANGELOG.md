@@ -3,6 +3,44 @@
 Cambios notables de la documentación de `Ejemplos_Maui_Devices` (`Ejemplos_Maui_Devices.Documentos`).
 Formato basado en [Keep a Changelog](https://keepachangelog.com/es-ES/1.1.0/).
 
+## [2026-07-21] — ia-db v1.4: CI de la app híbrida (`push` activo + variante end2end/Maestro)
+
+Actualización incremental de la `ia-db` contra el origen `Ejemplos_Maui_Devices @39e55e5`
+(seis commits posteriores a `a994257`), **todos acotados a la técnica de simulación end2end
+de la app híbrida**: no cambió código funcional de ningún ejemplo (el único `.cs` tocado,
+`Integrada/Ejemplo_Maui_Hibrida/App.xaml.cs`, solo varió en espacios en blanco). El conjunto
+documental (`Ejemplos_Maui_Devices-docs/`) no requirió cambios. Se mantiene la decisión de
+v1.2: el detalle interno de `Utilities/simular_ui.sh` y `Utilities/end2end/*.yaml` queda
+fuera del alcance indexado; solo se documenta su acoplamiento con el workflow.
+
+### Agregado
+
+- **Índice 09 §4.2 «Variante `Integrada` — simulación end2end con dedo virtual»**: tabla de
+  las diferencias del pipeline (`SCRIPT_SIMULATOR: ./Utilities/simular_ui.sh`,
+  `MAESTRO_VERSION: 1.41.0`, step de instalación de Maestro, artefacto `recorrido.mp4` +
+  `debug_logs/` en vez de GIF, ausencia del step de `ffmpeg`), más el **arranque endurecido
+  del simulador** (pre-warm por GUI en el build, `bootstatus -b` 240 s → `shutdown`+`erase`
+  → reintento de 300 s, peor caso ~9 min) y el **pre-warm de la grabación** (lanzar app +
+  espera antes de `simctl io … recordVideo`, con `extendedWaitUntil` en el flujo Maestro).
+- **Índice 10 §4**: variantes de subsección observadas en el CHANGELOG del origen
+  (`### Corregido`, `### Activado`) y la línea `Alcance:` que abre varias entradas.
+
+### Corregido
+
+- **Índice 09 §2**: la tabla afirmaba `push` **comentado** para los 18 workflows. Ahora
+  distingue los 17 de camera/gps/phone/printer/qr (solo `workflow_call`) del de la híbrida,
+  `cd-ios-Integrada.Ejemplo_Maui_Hibrida.yml`, con el **`push` activado** sobre `main`
+  filtrado a `Ejemplos_Devices/Integrada/Ejemplo_Maui_Hibrida/**`.
+- **Índice 00**, principio «CI centrado en iOS»: la simulación por GIF ya no es universal
+  (la híbrida produce video end2end con Maestro).
+- **Índice 10 §4**, puntero a la entrada más reciente del CHANGELOG del origen:
+  `2026-07-17` → `2026-07-18`.
+
+### Modificado
+
+- **`ia-db/README.md` a v1.4**: nota de sincronización incremental v1.4 (2026-07-21) y
+  manifiesto de generación actualizado (origen `@39e55e5`). Sin cambios en los índices 01–08.
+
 ## [2026-07-17] — Documentación de pruebas End2End (dedo virtual)
 
 Se documenta la técnica de prueba **end2end sobre la UI real** (Maestro «dedo virtual» +

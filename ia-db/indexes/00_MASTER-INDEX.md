@@ -92,7 +92,7 @@ Ejemplos_Maui_Devices/
 - **Un ejemplo = una técnica.** Los proyectos son deliberadamente mínimos y comparables; la variación (callback vs. Task, página vs. diálogo, librería A vs. B) es el objeto de estudio.
 - **Servicio tipado + overlay MVVM.** El patrón recurrente por dispositivo es una interfaz de servicio (`I*Service`) más un `ViewModel` de overlay; la app híbrida reutiliza este patrón consolidando cada dispositivo bajo `LibApp/Devices/` (índice 08).
 - **Puente WebView ↔ nativo por URL.** La app híbrida despacha acciones nativas interceptando la navegación del `WebView` y resolviendo el primer `IUrlCommandHandler` que coincide (índice 08).
-- **CI centrado en iOS.** Los workflows (`cd-ios-<categoria>.<Ejemplo>.yml`) compilan/publican en `macos-15`, con firma ad-hoc y simulación por GIF; el arranque local (`scripts/*.bat`) despliega a **Android físico** (índice 09).
+- **CI centrado en iOS.** Los workflows (`cd-ios-<categoria>.<Ejemplo>.yml`) compilan/publican en `macos-15`, con firma ad-hoc y simulación por GIF (la app híbrida, por video end2end con Maestro); el arranque local (`scripts/*.bat`) despliega a **Android físico** (índice 09).
 - **Secretos fuera del repo.** `**/Services/ApiKeys.cs` está en `.gitignore`; las claves (p.ej. Google Maps) se inyectan en build desde plantilla + secrets de CI. Excepción detectada: una API key de Google hardcodeada en `Maps/.../AndroidManifest.xml` (gotcha del índice 05).
 - **iOS + QR requiere cuidado con el simulador.** Algunas librerías de QR (BSM, basada en ML Kit) exigen `iossimulator-x64` + Rosetta y `GoogleUtilities`; BSN (Apple Vision) evita ese requisito y es la opción recomendada (índice 02).
 
