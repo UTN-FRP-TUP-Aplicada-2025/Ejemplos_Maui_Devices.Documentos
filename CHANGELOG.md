@@ -3,6 +3,50 @@
 Cambios notables de la documentación de `Ejemplos_Maui_Devices` (`Ejemplos_Maui_Devices.Documentos`).
 Formato basado en [Keep a Changelog](https://keepachangelog.com/es-ES/1.1.0/).
 
+## [2026-07-23] — ia-db v1.6: los dos modos de `CommandDelivery` del GPS + namespaces `LibApp.*`
+
+Actualización incremental de la `ia-db`. El refactor del puente que v1.5 indexó desde el árbol
+de trabajo **ya está commiteado** en el origen: HEAD pasó de `@39e55e5` a **`@0ef370b`**
+(«feat(hibrida): separa clasificacion de ejecucion en el puente de comandos por URL (Plan 1)»),
+con contenido idéntico a lo indexado, por lo que no hizo falta reindexarlo. Sobre ese commit hay
+**nuevos cambios sin commitear** (7 archivos), todos en `Ejemplos_Devices/Integrada/` → índice
+[08](ia-db/indexes/08_App-Hibrida-Integrada.md); ningún ejemplo aislado se tocó (00–07, 09, 10
+sin cambios). Fuera de alcance como antes: `Utilities/` (simulación end2end).
+
+### Agregado
+
+- **Índice 08 §2**: nota de **namespaces normalizados a la raíz `LibApp.*`** — los dos rezagados
+  bajo `Ejemplo_Maui_Hibrida.LibApp.*` (`Devices/GPS/ApiRelayService.cs` y
+  `UrlCommands/Handlers/PrintCommandHandler.cs`) ya migraron; sólo `MauiProgram.cs`, `App/AppShell`
+  y `ViewModels/` viven en el namespace del ensamblado. Importa para el linkeo de fuentes de los
+  tests (§9).
+- **Índice 08 §7.3**: tabla comparativa de las **dos tarjetas GPS** de `Panel.razor`
+  («Solicitar coordenadas» → `Substitution`, «Solicitar GeoPosicion» → `Injection`), más la
+  **trampa de lectura** del comentario XML de `OnSolicitarCoordenadas`, que describe el modo
+  contrario al que implementa.
+- **`PROMPTs/Guias/Crear-Extender-Comando.md`**: tool-prompt para generar la guía rápida de
+  extensión de comandos *queryparam* de `Ejemplo_Maui_Hibrida`.
+- **`Guias/Guias-Desarrollador/`**: carpeta de guías de desarrollador con los marcadores
+  `README.md` y `Extender-Comando.md` (aún vacíos, pendientes de generación).
+
+### Corregido
+
+- **Índice 08 §7.3**: v1.5 afirmaba que el camino web de GPS «pasó de inyección a re-navegación».
+  No la reemplazó: **la sumó**. Los dos modos de `CommandDelivery` conviven en `Panel.razor` y el
+  `div#contenidoCoordenada` volvió a estar activo para el modo `Injection`.
+
+### Modificado
+
+- **Índice 08 §1.1/§4.1/§4.2/§5.1/§8**: anclas de línea recalibradas — el reordenamiento de
+  `using` desplazó todas las líneas de `MauiProgram.cs` ~+7 (`108-115` → `116-123`, etc.); también
+  se recalibraron las de `GpsCommandHandler.cs` (`38-95` → `35-105`) y `Panel.razor`.
+- **`PROMPTs/`**: renombre de carpetas a plural — `Documentacion/` → `Documentaciones/` e
+  `Implementar/` → `Implementaciones/` (contenido sin cambios), más la nueva `Guias/`.
+- **`ia-db/README.md` a v1.6**: nota de sincronización incremental v1.6 (2026-07-23) y manifiesto
+  de generación actualizado (origen `@0ef370b` + cambios sin commitear).
+
+Sin cambios de comportamiento en el dispatcher ni en los tests (~125, §9 intacto).
+
 ## [2026-07-23] — ia-db v1.5: refactor del puente de comandos por URL de la app híbrida
 
 Actualización incremental de la `ia-db` contra el árbol de trabajo de `Ejemplos_Maui_Devices`

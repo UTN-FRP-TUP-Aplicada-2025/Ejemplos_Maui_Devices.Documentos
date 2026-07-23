@@ -35,12 +35,12 @@ El `WebView` carga `https://aplicada.somee.com` (`Pages/MainPage.xaml.cs:17`). S
 
 | Bloque | Qué registra | Líneas |
 |---|---|---|
-| Toolkit | `UseMauiCommunityToolkit` + `...Core` + `...Camera` | `MauiProgram.cs:36-38` |
-| QR | `UseBarcodeScanning()` (BarcodeScanning.Native.Maui 3.0.4) | `MauiProgram.cs:50` |
-| Impresión | `AddMotorDslEngine()` + `AddProfiles(...)` + `AddMotorDslMaui()` + `AddBluetoothPrinterTransport()` | `MauiProgram.cs:54-63` |
-| Servicios device | `IGpsService→GpsService`, `INetworkService→NetworkService`, `ICallService→CallService`, `IPrinterService→PrinterService`, `IUiDispatcher→MainThreadDispatcher`, `ApiRelayService` (singletons) — **registrados por interfaz** para que los overlays dependan de la abstracción y los tests inyecten fakes | `MauiProgram.cs:77,87-92` |
-| Bridge/páginas | `IWebViewBridge→WebViewBridge`, `IImageService→ImageDeviceAutoRotateService`, páginas de cámara | `MauiProgram.cs:94-97` |
-| Handlers URL | 7 `IUrlCommandHandler` + `UrlCommandDispatcher` (orden de registro = orden de evaluación) | `MauiProgram.cs:108-115` |
+| Toolkit | `UseMauiCommunityToolkit` + `...Core` + `...Camera` | `MauiProgram.cs:43-45` |
+| QR | `UseBarcodeScanning()` (BarcodeScanning.Native.Maui 3.0.4) | `MauiProgram.cs:57` |
+| Impresión | `AddMotorDslEngine()` + `AddProfiles(...)` + `AddMotorDslMaui()` + `AddBluetoothPrinterTransport()` | `MauiProgram.cs:61-70` |
+| Servicios device | `IGpsService→GpsService`, `INetworkService→NetworkService`, `ICallService→CallService`, `IPrinterService→PrinterService`, `IUiDispatcher→MainThreadDispatcher`, `ApiRelayService` (singletons) — **registrados por interfaz** para que los overlays dependan de la abstracción y los tests inyecten fakes | `MauiProgram.cs:83,93-98` |
+| Bridge/páginas | `IWebViewBridge→WebViewBridge`, `IImageService→ImageDeviceAutoRotateService`, páginas de cámara | `MauiProgram.cs:102-105` |
+| Handlers URL | 7 `IUrlCommandHandler` + `UrlCommandDispatcher` (orden de registro = orden de evaluación) | `MauiProgram.cs:116-123` |
 
 Shell de página única: `AppShell.xaml` declara sólo `MainPage` como `ShellContent`; `AppShell.xaml.cs:12-14` registra las rutas de navegación de las páginas modales de dispositivo (`MyMediaPickerPage`, `MyMediaSelfiePickerPage`, `QRLectorPage`).
 
@@ -82,7 +82,7 @@ LibApp/
     │   └── ViewModels/StatusOverlayViewModel.cs   Estados None/Busy/Error + OverlayAction
     ├── Camera/Pages/                  MyMediaPickerPage, MyMediaSelfiePickerPage (captura con callback)
     ├── GPS/                           IGpsService→GpsService + GpsOverlayViewModel + Models(GpsResult, GpsFailure, GpsErrorCatalog(GPS-*), LocationPermissionResult)
-    │   └── ApiRelayService.cs         Relay REST genérico con allowlist de hosts (usado por SendApi)
+    │   └── ApiRelayService.cs         Relay REST genérico con allowlist de hosts (usado por SendApi); namespace `LibApp.Devices.GPS`
     ├── Images/                        IImageService + ImageDeviceAutoRotateService + SelfieMaskDrawable
     ├── Networks/                      INetworkService→NetworkService + NetworkOverlayViewModel + NetworkResult
     ├── Phone/                         ICallService→CallService + CallOverlayViewModel + Models(CallMode, CallResult…, CallFailure + CallErrorCatalog(TEL-*))
@@ -96,6 +96,8 @@ LibApp/
 ```
 
 > Nota de build: `Ejemplo_Maui_Hibrida.csproj:84-90` excluye `LibApp/Devices/MotorDSL/NewFolder/**` de la compilación (carpeta muerta).
+>
+> **Namespaces normalizados a la raíz `LibApp.*`.** Todo `LibApp/` declara su namespace por carpeta bajo la raíz `LibApp` (`LibApp.UrlCommands.Handlers`, `LibApp.Devices.GPS`, …), **sin** el prefijo del ensamblado. Quedaban dos rezagados bajo `Ejemplo_Maui_Hibrida.LibApp.*` — `Devices/GPS/ApiRelayService.cs` y `UrlCommands/Handlers/PrintCommandHandler.cs` — ya migrados; hoy no queda ninguna referencia a `Ejemplo_Maui_Hibrida.LibApp` en `Ejemplos_Devices/Integrada/`. Sólo `MauiProgram.cs`, `App/AppShell` y `ViewModels/` viven en el namespace `Ejemplo_Maui_Hibrida`. Importa para el linkeo de fuentes de los tests (§9): un `using` mixto es lo que obligaba a duplicar imports en `MauiProgram.cs`.
 
 ### 2.1 El WebView personalizado (`CustomWebView/`)
 
@@ -159,7 +161,7 @@ private async Task Navigating(WebNavigatingEventArgs e)
   - `CommandDelivery DeliveryFor(string url)` (default `None`) — cómo devuelve el resultado *esta invocación concreta* (depende de la URL, no del handler; ver §4.3).
   - `void OnMatchedSync(string url)` (default no-op) — gancho **síncrono** ejecutado durante la clasificación, en el mismo pase que decide `e.Cancel` y antes de cualquier `await`; corre para **todos** los handlers que matchean, no sólo para el que se ejecuta.
   - Agregar un comando = una clase + una línea de DI.
-- **Registro** (`MauiProgram.cs:108-114`): cada handler como `AddSingleton<IUrlCommandHandler, ...>`. El **orden de registro = orden de evaluación**.
+- **Registro** (`MauiProgram.cs:116-122`): cada handler como `AddSingleton<IUrlCommandHandler, ...>`. El **orden de registro = orden de evaluación**.
 - **Clasificación** (`UrlCommandDispatcher.Plan(url)`, síncrona): evalúa `CanHandle` **una sola vez** por handler, arma la lista de matches, calcula `Cancel` como OR de `CancelsNavigation` y corre `OnMatchedSync` de todos los matches. Devuelve un `UrlPlan(Matches, Cancel)`; `Primary` = primer match (*first-match-wins*, abierto/cerrado, sin `switch`). Por qué existe el plan: con handlers que consultan/mutan estado, evaluar `CanHandle` dos veces (como antes en `IsCommand`+`DispatchAsync`) daría resultados distintos según el orden (`UrlPlan.cs`).
 - **Ejecución** (`ExecuteAsync(plan, url)`, async): delega en `plan.Primary`. `DispatchAsync(url) = ExecuteAsync(Plan(url), url)` se conserva para los botones nativos; `IsCommand(url) = Plan(url).HasMatches` se conserva por compatibilidad de firma (ya no lo usa `MainViewModel`).
 - **Invariante de continuación (sólo `#if DEBUG`, `Debug.Fail`):** si el plan cancela pero el `Primary` no es cancelable (URL mal formada, first-match-wins ejecuta otro handler) → navegación muerta; y un handler que declara `Substitution` y devuelve `NavigateTo == null` → idem. Falla ruidoso en el runner en vez de manifestarse como un WebView colgado (`UrlCommandDispatcher.cs`).
@@ -179,11 +181,11 @@ Cómo un comando le devuelve su resultado a la web. Es propiedad del **comando c
 
 ### 4.2 Handlers registrados (7)
 
-Orden = evaluación (`MauiProgram.cs:108-114`):
+Orden = evaluación (`MauiProgram.cs:116-122`):
 
 | # | Comando (marcador en la URL) | Handler | Efecto | Salida (`BridgeOutcome`) | Fuente |
 |---|---|---|---|---|---|
-| 1 | `coordenadas=coordenadas` | `GpsCommandHandler` | Pide geolocalización vía overlay. **Dos modos según la URL** (`DeliveryFor`): **con** `param={id}` → `Injection` (inyecta `"Latitud: …, Longitud: …"` en `#id`, no recarga); **sin** `param` → `Substitution` (re-navega sustituyendo `coordenadas=coordenadas` por `Latitud=…&Longitud=…` + nonce) | con `param`: `(true, null)` + JS · sin `param`: `(true, nuevaUrl)` — **re-navega SIEMPRE**, aun si el dispositivo falla (centinela `0.0/0.0`) | `Handlers/GpsCommandHandler.cs:38-95` |
+| 1 | `coordenadas=coordenadas` | `GpsCommandHandler` | Pide geolocalización vía overlay. **Dos modos según la URL** (`DeliveryFor`): **con** `param={id}` → `Injection` (inyecta `"Latitud: …, Longitud: …"` en `#id`, no recarga); **sin** `param` → `Substitution` (re-navega sustituyendo `coordenadas=coordenadas` por `Latitud=…&Longitud=…` + nonce) | con `param`: `(true, null)` + JS · sin `param`: `(true, nuevaUrl)` — **re-navega SIEMPRE**, aun si el dispositivo falla (centinela `0.0/0.0`) | `Handlers/GpsCommandHandler.cs:35-105` |
 | 2 | `phone=phone` | `CallCommandHandler` | Llamada directa al número por defecto `3434807427`, modo `Direct` | `(true, null)` | `Handlers/CallCommandHandler.cs:11,20-26` |
 | 3 | `photo=photo&param={id}` | `CameraCommandHandler` | Cámara → normaliza → base64 → inyecta en `img#id.src`/`.value` | `(true, null)` + JS | `Handlers/CameraCommandHandler.cs:23-67` |
 | 4 | `selfie=selfie&param={id}` | `SelfieCommandHandler` | Idéntico a foto pero con `MyMediaSelfiePickerPage` (máscara selfie) | `(true, null)` + JS | `Handlers/SelfieCommandHandler.cs:22-64` |
@@ -221,7 +223,7 @@ Los cuatro overlays (GPS, Red, Telefonía, Impresión) se llevaron al mismo patr
 
 | Aspecto | Antes | Ahora | Fuente |
 |---|---|---|---|
-| Costura de servicio | los VM dependían del tipo concreto (estáticos MAUI `Preferences`/`Permissions`/`AppInfo`, no ejercitables fuera del dispositivo) | interfaces `IGpsService`, `ICallService`, `INetworkService`, `IPrinterService` — registradas en DI (`MauiProgram.cs:77,87-91`) | `*/Services/I*.cs` |
+| Costura de servicio | los VM dependían del tipo concreto (estáticos MAUI `Preferences`/`Permissions`/`AppInfo`, no ejercitables fuera del dispositivo) | interfaces `IGpsService`, `ICallService`, `INetworkService`, `IPrinterService` — registradas en DI (`MauiProgram.cs:83,93-97`) | `*/Services/I*.cs` |
 | Hilo de UI | `NetworkOverlayViewModel` tocaba `MainThread`/`AppInfo` directo (único overlay reactivo) | delega en `IUiDispatcher` (`Common/Services/IUiDispatcher.cs`; impl. `MainThreadDispatcher`) | `NetworkOverlayViewModel.cs:25,34,43` |
 | Errores GPS/Telefonía | GPS escribía el fallo en `Coordenadas` (sin binding) y ocultaba el overlay; Telefonía mostraba `f.Message` crudo en inglés | catálogos `GpsErrorCatalog` (`GPS-*`) y `CallErrorCatalog` (`TEL-*`), espejo del de impresión (`PRN-*`): mensaje accionable en español + código dictable, con el técnico preservado para log | `GPS/Models/GpsErrorCatalog.cs`, `Phone/Models/CallFailure.cs` |
 | Botón primario | omitir `Primary` no daba error → pantallas con solo «Cerrar» quedaban sin botón destacado | toda pantalla de error tiene exactamente un `Primary`; «Cerrar» pasa a primario cuando es la única acción | invariante I-4 (§9) |
@@ -355,7 +357,18 @@ Web mínima (Razor Components Interactive Server + controllers API + OpenAPI/Sca
 
 Páginas Blazor (`Components/Pages/`): `Datos.razor` (prueba de interactividad), `Panel.razor` (botones que disparan el Canal B), `GeoLocalizacion.razor` (`/geolocalizacion` — muestra `Latitud`/`Longitud` recibidas por query), `Redirigir.razor`, `Error.razor`, `NotFound.razor`.
 
-> **Camino web de GPS — cambió a modo `Substitution`.** El botón «Tomar Coordenadas» de `Panel.razor` **ya no** navega a `/panel?coordenadas=coordenadas&param=contenidoCoordenada` (inyección en `#contenidoCoordenada`, ahora comentado): navega a **`/geolocalizacion?coordenadas=coordenadas`** (sin `param` → `GpsCommandHandler` en modo `Substitution`, §4.3). La app re-navega a `/geolocalizacion?Latitud=…&Longitud=…`, y `GeoLocalizacion.razor` lee esos query params (`[SupplyParameterFromQuery]`), muestra `{"Latitud": …, "Longitud": …}` y ofrece «Volver» a `/panel`. Sin coordenada, la app sustituye por `0.0/0.0` y la página lo interpreta como «sin coordenada». (`Panel.razor:159-163`, `GeoLocalizacion.razor`). Nota menor: `Panel.razor` pasó de `@inject NavigationManager Navigation` a una propiedad `[Inject] NavigationManager _navigationManager`.
+> **Camino web de GPS — los DOS modos de entrega conviven en `Panel.razor`.** El panel expone **dos tarjetas GPS**, una por modo de `CommandDelivery` (§4.3); es el único comando que se ejercita desde la web en sus dos formas, y sirve de demo comparativa lado a lado:
+>
+> | Tarjeta (`<h4>`) | Handler Blazor | URL que navega | Modo | Resultado |
+> |---|---|---|---|---|
+> | «Solicitar coordenadas» | `OnSolicitarCoordenadas()` | `/geolocalizacion?coordenadas=coordenadas` (**sin** `param`) | `Substitution` | La app re-navega a `/geolocalizacion?Latitud=…&Longitud=…`; `GeoLocalizacion.razor` lee los query params (`[SupplyParameterFromQuery]`), muestra `{"Latitud": …, "Longitud": …}` y ofrece «Volver» a `/panel`. Su `<div id="contenidoCoordenada">` está **comentado** (`Panel.razor:20`) porque en este modo no se inyecta nada |
+> | «Solicitar GeoPosicion» | `OnSolicitarGeoposicion()` | `/panel?coordenadas=coordenadas&param=contenidoCoordenada` (**con** `param`) | `Injection` | La app cancela la navegación, toma el GPS e inyecta `"Latitud: …, Longitud: …"` en `#contenidoCoordenada` por JS, sin recargar el panel (`Panel.razor:32`) |
+>
+> Ambos botones están rotulados «Tomar Coordenadas» — se distinguen por el `<h4>` de la tarjeta, no por el rótulo. En `Substitution`, si el dispositivo falla la app re-navega igual con el centinela `0.0/0.0` y la página lo interpreta como «sin coordenada» (invariante §4.3). Fuentes: `Panel.razor:12-34` (tarjetas) y `:168-182` (métodos), `GeoLocalizacion.razor`.
+>
+> ⚠️ **Trampa de lectura:** el comentario XML sobre `OnSolicitarCoordenadas` (`Panel.razor:172-173`) dice «INYECTA el resultado en `#contenidoCoordenada` … Mismo patrón que foto/selfie/QR: `param={id}`», pero ese método es el del modo **`Substitution`** (no lleva `param` y no inyecta): el comentario quedó del camino anterior y se copió tal cual al método nuevo. Vale para `OnSolicitarGeoposicion`, no para `OnSolicitarCoordenadas`. Guiarse por la URL, no por el comentario.
+>
+> Nota menor: `Panel.razor` pasó de `@inject NavigationManager Navigation` a una propiedad `[Inject] NavigationManager _navigationManager`.
 
 ### 7.2 DTOs de impresión (`DTOs/Print/`) — el "DSL"
 
@@ -385,7 +398,7 @@ Réplica del contrato de GDA.Core.API.Client (`Models/PrintActa/*`). El árbol s
 | Tema | Decisión / gotcha | Fuente |
 |---|---|---|
 | Reorganización a `LibApp/` | Cada dispositivo aislado se consolidó como subcarpeta `LibApp/Devices/<X>/` con Models/Services/ViewModels/Pages; los overlays comparten base `StatusOverlayViewModel` | árbol §2 |
-| Puente abierto/cerrado | Agregar un comando = 1 clase `IUrlCommandHandler` + 1 línea DI; sin `switch`. Orden de registro = prioridad (*first-match-wins*) | `MauiProgram.cs:107-114`, `UrlCommandDispatcher.cs` |
+| Puente abierto/cerrado | Agregar un comando = 1 clase `IUrlCommandHandler` + 1 línea DI; sin `switch`. Orden de registro = prioridad (*first-match-wins*) | `MauiProgram.cs:116-123`, `UrlCommandDispatcher.cs` |
 | `e.Cancel` síncrono (Plan 1) | Debe fijarse antes del primer `await`; por eso la clasificación `Plan(url)` (sync) se separa de `ExecuteAsync(plan,url)` (async). Cancelar = OR de `CancelsNavigation` sobre los matches, no «es comando ⇒ cancelo» | `MainViewModel.cs:93-96`, `UrlCommandDispatcher.cs` |
 | Entrega por comando, no por handler | `CommandDelivery` (`None`/`Injection`/`Substitution`) se decide por URL vía `DeliveryFor(url)`: GPS inyecta con `param`, sustituye sin él. `Substitution` **obliga** a re-navegar (centinela `0.0/0.0` si falla) o la navegación queda muerta | §4.3, `CommandDelivery.cs`, `GpsCommandHandler.cs` |
 | Invariante de continuación | `#if DEBUG` + `Debug.Fail`: si el plan cancela pero ejecuta un handler no-cancelable, o un `Substitution` no re-navega → falla ruidoso en el runner en vez de colgar el WebView | `UrlCommandDispatcher.cs` |
@@ -397,7 +410,7 @@ Réplica del contrato de GDA.Core.API.Client (`Models/PrintActa/*`). El árbol s
 | Guardrail de red | `ApiRelayService` restringe hosts a una allowlist; verbos ≠ Post/Get → `Blocked` | `ApiRelayService.cs:14-17,30-31` |
 | Bug de iOS (Canal A) | El circuito SignalR no se sostiene en WKWebView sobre host gratuito; la web se ve pero los `@onclick` mueren. Diagnóstico completo fuera de este índice | `Docs/web-hibrida/maui-hibrido.md` §7 |
 | Target sólo Android/iOS | El `.csproj` no compila Windows (`WindowsPackageType=None`); BT Classic SPP es Android-only | `csproj:4-5`, `PrinterService.cs:21-26` |
-| Costura de interfaz por servicio | Los `*OverlayViewModel` dependen de `I*Service` (no del tipo concreto) → registrables en DI y sustituibles por fakes en test; `IUiDispatcher` abstrae `MainThread` para el único overlay reactivo (Red) | §5.1, `MauiProgram.cs:77,87-91` |
+| Costura de interfaz por servicio | Los `*OverlayViewModel` dependen de `I*Service` (no del tipo concreto) → registrables en DI y sustituibles por fakes en test; `IUiDispatcher` abstrae `MainThread` para el único overlay reactivo (Red) | §5.1, `MauiProgram.cs:83,93-97` |
 | Tests sin dispositivo | Proyecto `net10.0` plano que linkea fuentes platform-free y codifica los 5 invariantes del patrón; una variante sin pantalla rompe la suite | §9 |
 
 ---
