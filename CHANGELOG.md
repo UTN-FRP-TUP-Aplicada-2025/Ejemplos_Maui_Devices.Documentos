@@ -3,6 +3,40 @@
 Cambios notables de la documentación de `Ejemplos_Maui_Devices` (`Ejemplos_Maui_Devices.Documentos`).
 Formato basado en [Keep a Changelog](https://keepachangelog.com/es-ES/1.1.0/).
 
+## [2026-07-23] — ia-db v1.5: refactor del puente de comandos por URL de la app híbrida
+
+Actualización incremental de la `ia-db` contra el árbol de trabajo de `Ejemplos_Maui_Devices`
+sobre `@39e55e5` (cambios **sin commitear**; HEAD sigue en `39e55e5`). Todo acotado a
+`Ejemplos_Devices/Integrada/` → índice [08](ia-db/indexes/08_App-Hibrida-Integrada.md); no se
+tocó ningún ejemplo aislado (00–07, 09, 10 sin cambios). El refactor separa la **clasificación**
+de la URL (`Plan`, síncrono) de su **ejecución** (`ExecuteAsync`, async), introduce el enum
+`CommandDelivery` (`None`/`Injection`/`Substitution`) y explicita los dos modos por URL de GPS.
+Fuera de alcance como antes: `Utilities/` (simulación end2end).
+
+### Agregado
+
+- **Índice 08 §4.3 «Modos de entrega (`CommandDelivery`)»**: tabla `None`/`Injection`/
+  `Substitution` — cómo cada comando devuelve su resultado a la web (propiedad del comando
+  concreto vía `DeliveryFor(url)`, no del handler), más la **invariante `Substitution`**
+  (debe re-navegar siempre; centinela `0.0/0.0` si falla el dispositivo).
+- **Índice 08 §7.3**: nueva página Blazor `GeoLocalizacion.razor` (`/geolocalizacion`) y el
+  cambio del camino web de GPS de inyección en `#contenidoCoordenada` a modo `Substitution`.
+- **Índice 08 §9**: los **9 tests nuevos del puente** (`UrlCommandDispatcherTests` +
+  ampliación de `GpsCommandHandlerTests`), el linkeo por comodín de `LibApp/UrlCommands/*.cs`
+  en el `.csproj` y el caso *skip en DEBUG* del invariante de continuación.
+
+### Modificado
+
+- **Índice 08 §2/§3/§4.1/§4.2/§6.2**: contrato `IUrlCommandHandler` con tres *default
+  interface members* (`CancelsNavigation`, `DeliveryFor(url)`, `OnMatchedSync(url)`);
+  `UrlCommandDispatcher` con `Plan(url)`/`ExecuteAsync(plan,url)` (se conservan
+  `DispatchAsync`/`IsCommand` por compatibilidad); `MainViewModel.Navigating` reescrito en
+  fase síncrona (decide `e.Cancel` desde el plan) + fase asíncrona; nuevos `CommandDelivery.cs`
+  y `UrlPlan.cs`.
+- **Índice 00**: conteo de tests `116` → `~125` (árbol y tabla de proyectos).
+- **`ia-db/README.md` a v1.5**: nota de sincronización incremental v1.5 (2026-07-23) y
+  manifiesto de generación actualizado (origen `@39e55e5`, árbol de trabajo sin commitear).
+
 ## [2026-07-21] — ia-db v1.4: CI de la app híbrida (`push` activo + variante end2end/Maestro)
 
 Actualización incremental de la `ia-db` contra el origen `Ejemplos_Maui_Devices @39e55e5`

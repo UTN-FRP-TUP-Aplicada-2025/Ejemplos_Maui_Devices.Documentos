@@ -61,9 +61,11 @@ LibApp/
 │       └── WebNavigatingEventArgsConverter.cs   Convierte args de Navigating/Navigated para EventToCommandBehavior
 │
 ├── UrlCommands/                       ★ Puente de comandos por URL (Canal B) — ver §4
-│   ├── IUrlCommandHandler.cs          Contrato: CanHandle(url) + HandleAsync(url)
+│   ├── IUrlCommandHandler.cs          Contrato: CanHandle(url) + CancelsNavigation + DeliveryFor(url) + OnMatchedSync(url) + HandleAsync(url) (los 3 del medio son default interface members)
+│   ├── CommandDelivery.cs             enum None/Injection/Substitution — cómo el comando devuelve su resultado a la web (por URL, no por handler)
+│   ├── UrlPlan.cs                     record(Matches, Cancel) — resultado de CLASIFICAR una URL, calculado una sola vez y síncrono; Primary = first-match-wins
 │   ├── BridgeOutcome.cs               record(CancelNavigation, NavigateTo?) — cómo termina un comando
-│   ├── UrlCommandDispatcher.cs        Loop first-match-wins sobre los handlers; IsCommand()/DispatchAsync()
+│   ├── UrlCommandDispatcher.cs        Plan(url) síncrono (clasifica) + ExecuteAsync(plan,url) async (ejecuta); DispatchAsync()/IsCommand() conservados por compatibilidad
 │   └── Handlers/                      7 handlers (uno por comando) — ver tabla §4.2
 │       ├── GpsCommandHandler.cs
 │       ├── CallCommandHandler.cs
@@ -118,19 +120,31 @@ flowchart LR
 `MainViewModel` es el `BindingContext` de `MainPage` y el punto donde el Canal B se dispara:
 
 ```csharp
-// ViewModels/MainViewModel.cs:77-89
+// ViewModels/MainViewModel.cs:90-132
 private async Task Navigating(WebNavigatingEventArgs e)
 {
-    if (_dispatcher.IsCommand(e.Url))
-        e.Cancel = true;                 // sincrónico: cancelar ANTES de cualquier await
-    var outcome = await _dispatcher.DispatchAsync(e.Url);
-    if (outcome.NavigateTo is not null)
-        Url = outcome.NavigateTo;        // rama de re-navegación (GPS)
-    IsRefreshing = false;
+    // ── Fase SÍNCRONA (hasta el primer await) ────────────────────────
+    var plan = _dispatcher.Plan(e.Url);          // clasifica una sola vez, síncrono
+    if (plan.Cancel) e.Cancel = true;            // cancelar ANTES de cualquier await
+    if (plan.HasMatches == false) { IsRefreshing = false; return; }   // navegación normal
+
+    // guard de reentrada SÓLO para planes que cancelan
+    if (plan.Cancel && comandoEnCurso) { IsRefreshing = false; return; }
+
+    // ── Fase ASÍNCRONA ───────────────────────────────────────────────
+    var marcarEnCurso = plan.Cancel;
+    if (marcarEnCurso) comandoEnCurso = true;
+    try
+    {
+        var outcome = await _dispatcher.ExecuteAsync(plan, e.Url);
+        if (outcome.NavigateTo is not null) Url = outcome.NavigateTo;   // rama Substitution (GPS)
+    }
+    finally { if (marcarEnCurso) comandoEnCurso = false; IsRefreshing = false; }
 }
 ```
 
-- `IsCommand` (síncrono) decide si cancelar; `DispatchAsync` (async) ejecuta. La cancelación **debe** ocurrir antes del primer `await` (`UrlCommandDispatcher.cs:15,17`).
+- **Plan 1 (refactor del puente):** la *clasificación* (`Plan`, síncrona) se separó de la *ejecución* (`ExecuteAsync`, async). La cancelación dejó de ser «es comando ⇒ cancelo» y pasó a ser un **OR sobre los handlers que matchean** (`h.CancelsNavigation`): los 7 handlers actuales son cancelables, así que el comportamiento observable no cambió. La cancelación **debe** fijarse antes del primer `await`; por eso vive en la fase síncrona, sobre el `plan` ya calculado (`UrlCommandDispatcher.cs:24-49`, `MainViewModel.cs:93-96`).
+- El guard de reentrada (`comandoEnCurso`) ahora sólo aplica a planes que **cancelan**: un plan no-cancelable deja seguir la navegación de todos modos, así que bloquearlo no protegería nada.
 - Botones nativos del pie (`MainPage.xaml:51-54`) invocan el mismo protocolo sin pasar por la web: `TakePhone` → `phone=phone`, `TakeQR` → `qr=qr&param=contenidoQR`, `TakeGPS` fuerza `coordenadas=coordenadas` (`MainViewModel.cs:43-70`).
 - Overlays `GPS/Network/Call` se dibujan encima del `WebView`; el `WebView` sólo es visible si el overlay de Red está oculto, para no mostrar la página de error del navegador (`MainPage.xaml:22-48`).
 
@@ -140,13 +154,28 @@ private async Task Navigating(WebNavigatingEventArgs e)
 
 ### 4.1 Cómo se registra y despacha
 
-- **Contrato** (`IUrlCommandHandler.cs`): `bool CanHandle(string url)` + `Task<BridgeOutcome> HandleAsync(string url)`. Agregar un comando = una clase + una línea de DI.
+- **Contrato** (`IUrlCommandHandler.cs`): `bool CanHandle(string url)` + `Task<BridgeOutcome> HandleAsync(string url)`, más tres **default interface members** que los 7 handlers actuales no necesitan implementar (conservan su comportamiento por defecto):
+  - `bool CancelsNavigation` (default `true`) — ¿esta URL-comando cancela la navegación del WebView?
+  - `CommandDelivery DeliveryFor(string url)` (default `None`) — cómo devuelve el resultado *esta invocación concreta* (depende de la URL, no del handler; ver §4.3).
+  - `void OnMatchedSync(string url)` (default no-op) — gancho **síncrono** ejecutado durante la clasificación, en el mismo pase que decide `e.Cancel` y antes de cualquier `await`; corre para **todos** los handlers que matchean, no sólo para el que se ejecuta.
+  - Agregar un comando = una clase + una línea de DI.
 - **Registro** (`MauiProgram.cs:108-114`): cada handler como `AddSingleton<IUrlCommandHandler, ...>`. El **orden de registro = orden de evaluación**.
-- **Despacho** (`UrlCommandDispatcher.cs:17-26`): recorre los handlers y delega en el **primero** cuyo `CanHandle` matchea (*first-match-wins*, abierto/cerrado, sin `switch` por comando).
-- **Resultado** (`BridgeOutcome.cs`): `record(bool CancelNavigation, string? NavigateTo = null)`. Tres formas de "devolver" un resultado:
-  1. **Inyectar JS y quedarse** (`NavigateTo == null` + `RunScript`): cámara, selfie, QR, sendAPI, print.
-  2. **Re-navegar con query params** (`NavigateTo != null`): sólo GPS.
-  3. **Sólo efecto nativo + overlay** (sin `RunScript`): llamada.
+- **Clasificación** (`UrlCommandDispatcher.Plan(url)`, síncrona): evalúa `CanHandle` **una sola vez** por handler, arma la lista de matches, calcula `Cancel` como OR de `CancelsNavigation` y corre `OnMatchedSync` de todos los matches. Devuelve un `UrlPlan(Matches, Cancel)`; `Primary` = primer match (*first-match-wins*, abierto/cerrado, sin `switch`). Por qué existe el plan: con handlers que consultan/mutan estado, evaluar `CanHandle` dos veces (como antes en `IsCommand`+`DispatchAsync`) daría resultados distintos según el orden (`UrlPlan.cs`).
+- **Ejecución** (`ExecuteAsync(plan, url)`, async): delega en `plan.Primary`. `DispatchAsync(url) = ExecuteAsync(Plan(url), url)` se conserva para los botones nativos; `IsCommand(url) = Plan(url).HasMatches` se conserva por compatibilidad de firma (ya no lo usa `MainViewModel`).
+- **Invariante de continuación (sólo `#if DEBUG`, `Debug.Fail`):** si el plan cancela pero el `Primary` no es cancelable (URL mal formada, first-match-wins ejecuta otro handler) → navegación muerta; y un handler que declara `Substitution` y devuelve `NavigateTo == null` → idem. Falla ruidoso en el runner en vez de manifestarse como un WebView colgado (`UrlCommandDispatcher.cs`).
+- **Resultado** (`BridgeOutcome.cs`): `record(bool CancelNavigation, string? NavigateTo = null)` — ver §4.3.
+
+### 4.3 Modos de entrega (`CommandDelivery`)
+
+Cómo un comando le devuelve su resultado a la web. Es propiedad del **comando concreto**, no del handler: el mismo handler puede operar en dos modos según la URL (por eso `DeliveryFor(url)`, no una propiedad sin argumentos). Caso testigo: `GpsCommandHandler` (§4.2, fila 1).
+
+| Modo | Cómo devuelve | `BridgeOutcome` | Casos actuales |
+|---|---|---|---|
+| `None` | Sin resultado para la web: la respuesta es la UI nativa (overlay) | `(true, null)` sin `RunScript` | llamada, impresión |
+| `Injection` | Inyecta en el DOM de la página viva vía `IWebViewBridge.RunScript`; **requiere** navegación cancelada (si recarga, el elemento destino desaparece) | `(true, null)` + JS | foto, selfie, QR, sendAPI, GPS **con** `param` |
+| `Substitution` | Re-navega la misma URL con el query param de comando sustituido por query params de valor | `(true, nuevaUrl)` | GPS **sin** `param` |
+
+> **Invariante `Substitution`:** un comando que declara `Substitution` **debe** devolver `NavigateTo` no nulo pase lo que pase con el dispositivo — si falla, se sustituye por el centinela `0.0/0.0`. Si no re-navega, la navegación queda muerta (se canceló y no se re-navegó). Verificado por la aserción de DEBUG del dispatcher y por tests (§9).
 
 ### 4.2 Handlers registrados (7)
 
@@ -154,7 +183,7 @@ Orden = evaluación (`MauiProgram.cs:108-114`):
 
 | # | Comando (marcador en la URL) | Handler | Efecto | Salida (`BridgeOutcome`) | Fuente |
 |---|---|---|---|---|---|
-| 1 | `coordenadas=coordenadas` | `GpsCommandHandler` | Pide geolocalización vía overlay; reescribe URL con `Latitud`/`Longitud` | `(true, nuevaUrl)` — **re-navega** | `Handlers/GpsCommandHandler.cs:16-33` |
+| 1 | `coordenadas=coordenadas` | `GpsCommandHandler` | Pide geolocalización vía overlay. **Dos modos según la URL** (`DeliveryFor`): **con** `param={id}` → `Injection` (inyecta `"Latitud: …, Longitud: …"` en `#id`, no recarga); **sin** `param` → `Substitution` (re-navega sustituyendo `coordenadas=coordenadas` por `Latitud=…&Longitud=…` + nonce) | con `param`: `(true, null)` + JS · sin `param`: `(true, nuevaUrl)` — **re-navega SIEMPRE**, aun si el dispositivo falla (centinela `0.0/0.0`) | `Handlers/GpsCommandHandler.cs:38-95` |
 | 2 | `phone=phone` | `CallCommandHandler` | Llamada directa al número por defecto `3434807427`, modo `Direct` | `(true, null)` | `Handlers/CallCommandHandler.cs:11,20-26` |
 | 3 | `photo=photo&param={id}` | `CameraCommandHandler` | Cámara → normaliza → base64 → inyecta en `img#id.src`/`.value` | `(true, null)` + JS | `Handlers/CameraCommandHandler.cs:23-67` |
 | 4 | `selfie=selfie&param={id}` | `SelfieCommandHandler` | Idéntico a foto pero con `MyMediaSelfiePickerPage` (máscara selfie) | `(true, null)` + JS | `Handlers/SelfieCommandHandler.cs:22-64` |
@@ -248,8 +277,8 @@ sequenceDiagram
     participant BT as Impresora Bluetooth
 
     Web->>VM: Navigating(url ?action=print)
-    VM->>VM: e.Cancel = true (IsCommand)
-    VM->>PH: DispatchAsync → HandleAsync(url)
+    VM->>VM: plan = Plan(url); e.Cancel = plan.Cancel
+    VM->>PH: ExecuteAsync(plan,url) → HandleAsync(url)
     PH->>OVM: MostrarObteniendoDocumento() (capa Busy)
     PH->>API: GET /api/Tikects/comprobante
     API-->>PH: 200 JSON PrintDocument (árbol PrintNode)
@@ -324,7 +353,9 @@ Web mínima (Razor Components Interactive Server + controllers API + OpenAPI/Sca
 | `/api/pagofake/pago-form` | GET | — | HTML con form auto-submit a otro host | Prueba de POST auto-enviado cross-host | `Controllers/PagoFakeController.cs:17-26` |
 | `/openapi/v1.json` · `/scalar` | GET | — | OpenAPI + UI Scalar | Documentación de API | `Program.cs:39-41` |
 
-Páginas Blazor (`Components/Pages/`): `Datos.razor` (prueba de interactividad), `Panel.razor` (botones que disparan el Canal B), `Redirigir.razor`, `Error.razor`, `NotFound.razor`.
+Páginas Blazor (`Components/Pages/`): `Datos.razor` (prueba de interactividad), `Panel.razor` (botones que disparan el Canal B), `GeoLocalizacion.razor` (`/geolocalizacion` — muestra `Latitud`/`Longitud` recibidas por query), `Redirigir.razor`, `Error.razor`, `NotFound.razor`.
+
+> **Camino web de GPS — cambió a modo `Substitution`.** El botón «Tomar Coordenadas» de `Panel.razor` **ya no** navega a `/panel?coordenadas=coordenadas&param=contenidoCoordenada` (inyección en `#contenidoCoordenada`, ahora comentado): navega a **`/geolocalizacion?coordenadas=coordenadas`** (sin `param` → `GpsCommandHandler` en modo `Substitution`, §4.3). La app re-navega a `/geolocalizacion?Latitud=…&Longitud=…`, y `GeoLocalizacion.razor` lee esos query params (`[SupplyParameterFromQuery]`), muestra `{"Latitud": …, "Longitud": …}` y ofrece «Volver» a `/panel`. Sin coordenada, la app sustituye por `0.0/0.0` y la página lo interpreta como «sin coordenada». (`Panel.razor:159-163`, `GeoLocalizacion.razor`). Nota menor: `Panel.razor` pasó de `@inject NavigationManager Navigation` a una propiedad `[Inject] NavigationManager _navigationManager`.
 
 ### 7.2 DTOs de impresión (`DTOs/Print/`) — el "DSL"
 
@@ -354,8 +385,10 @@ Réplica del contrato de GDA.Core.API.Client (`Models/PrintActa/*`). El árbol s
 | Tema | Decisión / gotcha | Fuente |
 |---|---|---|
 | Reorganización a `LibApp/` | Cada dispositivo aislado se consolidó como subcarpeta `LibApp/Devices/<X>/` con Models/Services/ViewModels/Pages; los overlays comparten base `StatusOverlayViewModel` | árbol §2 |
-| Puente abierto/cerrado | Agregar un comando = 1 clase `IUrlCommandHandler` + 1 línea DI; sin `switch`. Orden de registro = prioridad (*first-match-wins*) | `MauiProgram.cs:107-114`, `UrlCommandDispatcher.cs:19-22` |
-| `e.Cancel` síncrono | Debe fijarse antes del primer `await`; por eso `IsCommand` (sync) separado de `DispatchAsync` (async) | `MainViewModel.cs:80-81` |
+| Puente abierto/cerrado | Agregar un comando = 1 clase `IUrlCommandHandler` + 1 línea DI; sin `switch`. Orden de registro = prioridad (*first-match-wins*) | `MauiProgram.cs:107-114`, `UrlCommandDispatcher.cs` |
+| `e.Cancel` síncrono (Plan 1) | Debe fijarse antes del primer `await`; por eso la clasificación `Plan(url)` (sync) se separa de `ExecuteAsync(plan,url)` (async). Cancelar = OR de `CancelsNavigation` sobre los matches, no «es comando ⇒ cancelo» | `MainViewModel.cs:93-96`, `UrlCommandDispatcher.cs` |
+| Entrega por comando, no por handler | `CommandDelivery` (`None`/`Injection`/`Substitution`) se decide por URL vía `DeliveryFor(url)`: GPS inyecta con `param`, sustituye sin él. `Substitution` **obliga** a re-navegar (centinela `0.0/0.0` si falla) o la navegación queda muerta | §4.3, `CommandDelivery.cs`, `GpsCommandHandler.cs` |
+| Invariante de continuación | `#if DEBUG` + `Debug.Fail`: si el plan cancela pero ejecuta un handler no-cancelable, o un `Substitution` no re-navega → falla ruidoso en el runner en vez de colgar el WebView | `UrlCommandDispatcher.cs` |
 | WebView desacoplado | El VM/handler nunca tocan el control; van por `IWebViewBridge`; la behavior necesita que se le propague el `BindingContext` a mano | `WebViewBridgeBehavior.cs:22-27` |
 | Render antes de imprimir | `PrintCommandHandler` renderiza primero y sólo valida el contrato deserializando; pasa el JSON **crudo** al engine | `PrintCommandHandler.cs:38-49,79-90` |
 | MotorDSL 1.0.13 | 7 paquetes `MotorDsl.*` alineados a 1.0.13; perfiles térmico/PDF; transporte BT sólo Android | `csproj:118-126`, `PrinterService.cs:21-26` |
@@ -371,7 +404,9 @@ Réplica del contrato de GDA.Core.API.Client (`Models/PrintActa/*`). El árbol s
 
 ## 9. Suite de tests (`Ejemplo_Maui_Hibrida.Tests`)
 
-**Primer proyecto de tests de toda la solución.** 116 tests xUnit sobre `net10.0` plano que corren en el runner de escritorio/CI **sin emulador ni dispositivo** — viable porque los ViewModels ya no tocan la plataforma y los servicios quedan detrás de interfaces (§5.1). Fuente: `Ejemplos_Devices/Integrada/Ejemplo_Maui_Hibrida.Tests/`.
+**Primer proyecto de tests de toda la solución.** ~125 tests xUnit (116 de overlays + **9 nuevos del puente** por Plan 1; uno se saltea en DEBUG, ver abajo) sobre `net10.0` plano que corren en el runner de escritorio/CI **sin emulador ni dispositivo** — viable porque los ViewModels ya no tocan la plataforma y los servicios quedan detrás de interfaces (§5.1). Fuente: `Ejemplos_Devices/Integrada/Ejemplo_Maui_Hibrida.Tests/`.
+
+> **Tests del puente (Plan 1).** El `.csproj` pasó a linkear **todo** `LibApp/UrlCommands/*.cs` por comodín (contrato, `CommandDelivery`, `UrlPlan`, dispatcher — todo platform-free; sólo `Handlers/GpsCommandHandler.cs` se linkea explícito) (`.csproj:65-78`). Nuevos: `UrlCommandDispatcherTests` (5 métodos: sin-match no cancela, handler no-cancelable no cancela, un cancelable entre varios cancela el plan, `OnMatchedSync` corre para todos los matches, y first-match-wins — este último **skip en DEBUG** porque dispara el `Debug.Fail` del invariante de continuación, corre en Release). `GpsCommandHandlerTests` ganó 4 casos: `Substitution` sin señal re-navega igual con centinela `0.0/0.0`; `Injection` sin señal ni re-navega ni inyecta; y `DeliveryFor` distingue los dos modos.
 
 | Aspecto | Detalle | Fuente |
 |---|---|---|
@@ -391,7 +426,7 @@ Réplica del contrato de GDA.Core.API.Client (`Models/PrintActa/*`). El árbol s
 
 > Agregar una variante sin pantalla ahora **rompe la suite** (I-2) — es lo que C# no verifica y lo que dejó a `BluetoothOff` inalcanzable durante toda la vida del PoC (ver [índice 03 §10.2](03_Impresion-Termica.md)). La suite arrancó en 34 rojos (GPS 21, Telefonía 7, Impresión 3, Red 3) que reproducían los defectos documentados, y cerró en 116/116. Pendiente: verificación en dispositivo real (que la decisión del VM llegue a la pantalla y que los glyphs existan en la fuente). No hay workflow CI para esta suite (índice 09).
 
-Archivos de test: `BaseOverlayTests` (máquina None/Busy/Error de `StatusOverlayViewModel`), `GpsOverlayTests`, `CallOverlayTests`, `NetworkOverlayTests` (único reactivo, ejercita `ConnectivityChanged`), `PrinterOverlayTests` (red de no-regresión del dominio ya validado en dispositivo), `PrinterErrorCatalogTests` (función pura `Describe`).
+Archivos de test: `BaseOverlayTests` (máquina None/Busy/Error de `StatusOverlayViewModel`), `GpsOverlayTests`, `CallOverlayTests`, `NetworkOverlayTests` (único reactivo, ejercita `ConnectivityChanged`), `PrinterOverlayTests` (red de no-regresión del dominio ya validado en dispositivo), `PrinterErrorCatalogTests` (función pura `Describe`), `NavigatingReentrancyTests` (guard de reentrada del interceptor), `GpsCommandHandlerTests` (round-trip de cultura + los dos modos de entrega) y `UrlCommandDispatcherTests` (clasificación y cancelación del puente, Plan 1).
 
 ---
 

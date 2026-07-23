@@ -34,7 +34,7 @@
 | Targets | `net10.0-android`, `net10.0-ios` (iOS en CI/macOS) |
 | Dominios | Cámara · QR · Impresión térmica · GPS · Mapas · Telefonía · Red · App híbrida integrada |
 | Repo de código | `../../Ejemplos_Maui_Devices/` (hermano de esta carpeta `.Documentos`) |
-| Versión ia-db | 1.4 |
+| Versión ia-db | 1.5 |
 
 **Función principal.** Cada dispositivo de plataforma se presenta como uno o varios proyectos MAUI mínimos y comparables que contrastan enfoques de implementación; una app híbrida (`Ejemplo_Maui_Hibrida`) consolida todos los dispositivos detrás de un `WebView` con un puente de comandos por URL y un backend Blazor de apoyo.
 
@@ -87,6 +87,8 @@ Sobre esta ia-db se generó el conjunto documental completo (Marco de Documentac
 
 > **Actualización incremental v1.4 (2026-07-21):** seis commits posteriores a `a994257` (hasta `39e55e5`), **todos acotados a la técnica de simulación end2end de la app híbrida**; no cambió código funcional de ningún ejemplo (el único archivo `.cs` tocado, `Integrada/Ejemplo_Maui_Hibrida/App.xaml.cs`, solo varió en espacios en blanco). Cambios indexados en el [índice 09](indexes/09_CI-CD-y-Build.md): (1) el `push` sobre `main` del workflow `cd-ios-Integrada.Ejemplo_Maui_Hibrida.yml` pasó de **comentado a activo** (filtrado a `Ejemplos_Devices/Integrada/Ejemplo_Maui_Hibrida/**`) — corregidas las afirmaciones de §2 que daban «`push` comentado» para los 18 workflows; (2) nueva **§4.2** que documenta la variante `Integrada` del pipeline (env `SCRIPT_SIMULATOR: ./Utilities/simular_ui.sh` y `MAESTRO_VERSION: 1.41.0`, step de instalación de Maestro, artefacto `recorrido.mp4` en vez de GIF, boot del simulador por GUI con timeout/reintento y pre-warm de la grabación). En el [índice 10 §4](indexes/10_Documentacion-Transversal.md) se actualizó la entrada más reciente del CHANGELOG (`2026-07-18`) y se registraron las subsecciones `### Corregido` / `### Activado` y la línea `Alcance:`. Se mantiene la decisión de v1.2: el **detalle interno** de `Utilities/simular_ui.sh` y `Utilities/end2end/*.yaml` queda fuera del alcance indexado (solo se documenta su acoplamiento con el workflow). Sin cambios en los índices 00–08.
 
+> **Actualización incremental v1.5 (2026-07-23):** refactor del **puente de comandos por URL** de la app híbrida (cambios en el árbol de trabajo **sin commitear**, sobre `@39e55e5`; HEAD sigue en `39e55e5`). Todo acotado a `Ejemplos_Devices/Integrada/` → índice [08](indexes/08_App-Hibrida-Integrada.md); no se tocó ningún ejemplo aislado (00–07, 09, 10 sin cambios). Cambios: (1) la clasificación de la URL se separó de la ejecución — `UrlCommandDispatcher.IsCommand`/`DispatchAsync` → `Plan(url)` (síncrono, un `UrlPlan`) + `ExecuteAsync(plan,url)`; la cancelación pasó de «es comando ⇒ cancelo» a un **OR sobre `CancelsNavigation`** de los handlers que matchean. (2) `IUrlCommandHandler` ganó tres *default interface members* (`CancelsNavigation`, `DeliveryFor(url)`, `OnMatchedSync(url)`) — los 7 handlers actuales no se editan. (3) nuevo enum `CommandDelivery` (`None`/`Injection`/`Substitution`) y record `UrlPlan`. (4) `GpsCommandHandler` explicitó **dos modos por URL**: con `param` inyecta, sin `param` **re-navega siempre** (centinela `0.0/0.0` si falla el dispositivo — antes dejaba la página congelada). (5) el camino web de GPS de `Panel.razor` pasó de inyección en `#contenidoCoordenada` a re-navegar a la **nueva página `/geolocalizacion`** (`GeoLocalizacion.razor`). (6) `MainViewModel.Navigating` reescrito en fase síncrona (decide `e.Cancel` desde el plan) + fase asíncrona. (7) 9 tests nuevos del puente (`UrlCommandDispatcherTests` + ampliación de `GpsCommandHandlerTests`; ~116→~125). Índices tocados: [08](indexes/08_App-Hibrida-Integrada.md) (§2, §3, §4.1/§4.2/§4.3 nueva, §6.2, §7.3, §8, §9) y [00](indexes/00_MASTER-INDEX.md) (conteo de tests). Fuera de alcance como antes: `Utilities/` (simulación end2end).
+
 ## Manifiesto de generación
 
 - Generado por : /IA.Prompting.Templates/Tool-Prompts/Iniciar-Indexado.md
@@ -94,5 +96,5 @@ Sobre esta ia-db se generó el conjunto documental completo (Marco de Documentac
 - Fuentes      : Ejemplos_Devices/ (Camera, QR, Printer, GPS, Maps, Phone, Red, Integrada, Docs, scripts), .github/workflows/, README.md, CHANGELOG.md, vs.bat, .gitignore
 - Exclusiones  : .git, bin, obj, .vs, Platforms/*/Resources, wwwroot/lib, binarios/imágenes, artefactos de build, y lo ignorado por .gitignore
 - Generado     : 2026-07-14 · Versión: 1.0
-- Actualizado  : 2026-07-21 · Versión: 1.4 (incremental; CI de la híbrida: `push` activo + variante end2end/Maestro del pipeline — origen `@39e55e5`, ver nota de sincronización)
-- Actualizar   : /IA/IA.Prompts/Tool-Prompts/Indexado/Actualizar-Indexado.md
+- Actualizado  : 2026-07-23 · Versión: 1.5 (incremental; refactor del puente de comandos por URL de la híbrida — Plan/ExecuteAsync + `CommandDelivery` + modo `Substitution` de GPS + página `/geolocalizacion` — cambios en árbol de trabajo sin commitear sobre `@39e55e5`, ver nota de sincronización)
+- Actualizar   : /IA/IA.Prompts/Tool-Prompts/Indexado-Documentado/Actualizar-Indexado.md
